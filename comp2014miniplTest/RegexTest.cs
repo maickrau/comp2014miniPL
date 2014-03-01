@@ -112,5 +112,15 @@ namespace comp2014miniplTest
             Assert.AreEqual(6, reg.recognize("abcaef"));
             Assert.AreEqual(6, reg.recognize("abc.ef"));
         }
+        [TestMethod]
+        public void parenthesisAlternatesWork()
+        {
+            Regex reg = new Regex("a(bc|de)*f");
+            Assert.AreEqual(4, reg.recognize("abcf"));
+            Assert.AreEqual(4, reg.recognize("adef"));
+            Assert.AreEqual(14, reg.recognize("abcbcbcdedebcf"));
+            Assert.AreEqual(2, reg.recognize("af"));
+            Assert.AreEqual(0, reg.recognize("abgbcbcdedebcf"));
+        }
     }
 }

@@ -59,19 +59,48 @@ namespace comp2014minipl
         {
             //str[loc] == '('
             loc++;
-            NFA builtNFA = parseOne(str, ref loc);
+            NFA totalNFA = null;
+            NFA builtNFA = null;
             while (str[loc] != ')')
             {
                 if (loc >= str.Length)
                 {
                     throw new Exception("Regex has a ( without a matching )");
                 }
+                if (str[loc] == '|')
+                {
+                    if (totalNFA == null)
+                    {
+                        totalNFA = builtNFA;
+                    }
+                    else
+                    {
+                        totalNFA = totalNFA.or(builtNFA);
+                    }
+                    builtNFA = null;
+                    loc++;
+                }
                 NFA nextNFA = parseOne(str, ref loc);
-                builtNFA = builtNFA.conc(nextNFA);
+                if (builtNFA == null)
+                {
+                    builtNFA = nextNFA;
+                }
+                else
+                {
+                    builtNFA = builtNFA.conc(nextNFA);
+                }
+            }
+            if (totalNFA == null)
+            {
+                totalNFA = builtNFA;
+            }
+            else
+            {
+                totalNFA = totalNFA.or(builtNFA);
             }
             loc++;
             //loc is first character after )
-            return builtNFA;
+            return totalNFA;
         }
         private NFA parseOne(String str, ref int loc)
         {
@@ -182,6 +211,9 @@ namespace comp2014minipl
             NFA ret;
             switch(str[loc])
             {
+                case '|':
+                    ret = new NFA("|");
+                    break;
                 case '\\':
                     ret = new NFA("\\");
                     break;

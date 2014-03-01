@@ -10,21 +10,9 @@ namespace comp2014minipl
     {
         static void Main(string[] args)
         {
-            /*
-            NFA a = new NFA("a");
-            NFA b = new NFA("b");
-            NFA empty = new NFA("");
-            NFA test = new NFA(1).complement();
-            test.debugPrint();
-            test.recognizes("a");
-            test.debugPrint();
-            */
-
-            Regex reg = new Regex("a[b-d]e");
-            reg.nfa.debugPrint();
-            reg.recognize("a");
-            reg.nfa.debugPrint();
-            
+            Scanner s = new Scanner();
+            List<Token> result = s.parse("\"abc\" ");
+            System.Console.WriteLine("\"{0}\"", ((StringLiteral)result[0]).value);
             System.Console.ReadLine();
         }
     }
