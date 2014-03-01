@@ -9,6 +9,22 @@ namespace comp2014minipl
     public abstract class Token
     {
     }
+    public class Operator : Token
+    {
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Operator))
+            {
+                return false;
+            }
+            return value == ((Operator)obj).value;
+        }
+        public Operator(String str)
+        {
+            value = str;
+        }
+        public String value;
+    }
     public class Whitespace : Token
     {
         public override bool Equals(object obj)
@@ -165,7 +181,11 @@ namespace comp2014minipl
         {
             scannables.Add(new Tuple<Type, Regex>(typeof(Keyword), new Regex(keyword)));
         }
-        public List<Token> parse(String text)
+        public void addOperator(String op)
+        {
+            scannables.Add(new Tuple<Type, Regex>(typeof(Operator), new Regex(op)));
+        }
+        public List<Token> parse(String text, bool outputWhitespace = false)
         {
             List<Token> ret = new List<Token>();
             int loc = 0;
@@ -190,7 +210,10 @@ namespace comp2014minipl
                 else
                 {
                     lengthMunched = longestMunch.Item2;
-                    ret.Add((Token)System.Activator.CreateInstance(longestMunch.Item1, text.Substring(loc, longestMunch.Item2)));
+                    if (longestMunch.Item1 != typeof(Whitespace) || outputWhitespace)
+                    {
+                        ret.Add((Token)System.Activator.CreateInstance(longestMunch.Item1, text.Substring(loc, longestMunch.Item2)));
+                    }
                 }
                 loc += lengthMunched;
             }

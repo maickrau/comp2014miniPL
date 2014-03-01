@@ -15,7 +15,7 @@ namespace comp2014miniplTest
             s.addKeyword("for");
             s.addKeyword("in");
             s.addKeyword("to");
-            List<Token> result = s.parse("for i in 1 to 10");
+            List<Token> result = s.parse("for i in 1 to 10", true);
             Assert.AreEqual(new Keyword("for"), result[0]);
             Assert.AreEqual(new Whitespace(""), result[1]);
             Assert.AreEqual(new Identifier("i"), result[2]);
@@ -32,7 +32,7 @@ namespace comp2014miniplTest
         public void scansLiterals()
         {
             Scanner s = new Scanner();
-            List<Token> result = s.parse("\"abc\" 1 true false -50 0");
+            List<Token> result = s.parse("\"abc\" 1 true false -50 0", true);
             Assert.AreEqual(new StringLiteral("\"abc\""), result[0]);
             Assert.AreEqual("abc", ((StringLiteral)result[0]).value);
             Assert.AreEqual(new Whitespace(""), result[1]);
@@ -50,6 +50,38 @@ namespace comp2014miniplTest
             Assert.AreEqual(new Whitespace(""), result[9]);
             Assert.AreEqual(new IntLiteral("0"), result[10]);
             Assert.AreEqual(0, ((IntLiteral)result[10]).value);
+        }
+        [TestMethod]
+        public void ignoresWhitespaceWhenOrdered()
+        {
+            Scanner s = new Scanner();
+            s.addKeyword("for");
+            s.addKeyword("in");
+            s.addKeyword("to");
+            List<Token> result = s.parse("for i in 1 to 10");
+            Assert.AreEqual(new Keyword("for"), result[0]);
+            Assert.AreEqual(new Identifier("i"), result[1]);
+            Assert.AreEqual(new Keyword("in"), result[2]);
+            Assert.AreEqual(new IntLiteral("1"), result[3]);
+            Assert.AreEqual(new Keyword("to"), result[4]);
+            Assert.AreEqual(new IntLiteral("10"), result[5]);
+        }
+        [TestMethod]
+        public void tokenizesExpression()
+        {
+            Scanner s = new Scanner();
+            s.addKeyword("\\(");
+            s.addKeyword("\\)");
+            s.addOperator("+");
+            s.addOperator("*");
+            List<Token> result = s.parse("1+(2*3)");
+            Assert.AreEqual(new IntLiteral("1"), result[0]);
+            Assert.AreEqual(new Operator("+"), result[1]);
+            Assert.AreEqual(new Keyword("("), result[2]);
+            Assert.AreEqual(new IntLiteral("2"), result[3]);
+            Assert.AreEqual(new Operator("*"), result[4]);
+            Assert.AreEqual(new IntLiteral("3"), result[5]);
+            Assert.AreEqual(new Keyword(")"), result[6]);
         }
     }
 }
