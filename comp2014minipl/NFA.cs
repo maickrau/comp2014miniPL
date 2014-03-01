@@ -9,24 +9,68 @@ namespace comp2014minipl
 {
     public class NFA
     {
-        private class Connection
+        private abstract class Connection
         {
             public int start;
             public int end;
-            public char character; // '\0' is epsilon
-            public Connection(Connection second)
+            public abstract Connection copy();
+            public abstract bool accepts(char ch);
+            public void increment(int amount)
+            {
+                start += amount;
+                end += amount;
+            }
+            public abstract String debugString();
+        }
+        private class EpsilonConnection : Connection
+        {
+            public EpsilonConnection(int start, int end)
+            {
+                this.start = start;
+                this.end = end;
+            }
+            public override Connection copy()
+            {
+                return new EpsilonConnection(start, end);
+            }
+            public override bool accepts(char ch)
+            {
+                return true;
+            }
+            public override string debugString()
+            {
+                return new StringBuilder().Append(start).Append(" ").Append(end).Append(" epsilon").ToString();
+            }
+        }
+        private class ConnectionExactCharacter : Connection
+        {
+            private char character; // '\0' is epsilon
+            public ConnectionExactCharacter(ConnectionExactCharacter second)
             {
                 this.start = second.start;
                 this.end = second.end;
                 this.character = second.character;
             }
-            public Connection(int start, int end, char character)
+            public ConnectionExactCharacter(int start, int end, char character)
             {
                 this.start = start;
                 this.end = end;
                 this.character = character;
             }
+            public override Connection copy()
+            {
+                return new ConnectionExactCharacter(start, end, character);
+            }
+            public override bool accepts(char c)
+            {
+                return c == character;
+            }
+            public override string debugString()
+            {
+                return new StringBuilder().Append(start).Append(" ").Append(end).Append(" ").Append(character).ToString();
+            }
         }
+
         private int startState;
         private int numStates;
         private List<Tuple<int, int>> currentStates;
@@ -45,7 +89,7 @@ namespace comp2014minipl
             System.Console.WriteLine();
             foreach (Connection c in connections)
             {
-                System.Console.WriteLine("{0} {1} {2}", c.start, c.end, c.character);
+                System.Console.WriteLine(c.debugString());
             }
         }
         public NFA(List<char> range)
@@ -55,7 +99,7 @@ namespace comp2014minipl
             startState = 0;
             foreach (char c in range)
             {
-                connections.Add(new Connection(0, 1, c));
+                connections.Add(new ConnectionExactCharacter(0, 1, c));
             }
             numStates = 2;
             endStates.Add(1);
@@ -69,7 +113,7 @@ namespace comp2014minipl
             startState = 0;
             for (int i = 0; i < str.Length; i++)
             {
-                connections.Add(new Connection(i, i + 1, str[i]));
+                connections.Add(new ConnectionExactCharacter(i, i + 1, str[i]));
             }
             numStates = str.Length + 1;
             endStates.Add(str.Length);
@@ -87,9 +131,11 @@ namespace comp2014minipl
             }
             return ret;
         }
-        private void connect(int start, int end, char character)
+        private void connect(int start, int end, Connection connectionType)
         {
-            Connection newConnection = new Connection(start, end, character);
+            Connection newConnection = connectionType.copy();
+            newConnection.start = start;
+            newConnection.end = end;
             connections.Add(newConnection);
             connectionPerState[start].Add(newConnection);
         }
@@ -108,7 +154,7 @@ namespace comp2014minipl
         public NFA(NFA second)
         {
             //we want to create a deep copy instead of modifying the original
-            connections = second.connections.ConvertAll(c => new Connection(c));
+            connections = second.connections.ConvertAll(c => c.copy());
             endStates = new List<int>(second.endStates);
             startState = second.startState;
             numStates = second.numStates;
@@ -119,8 +165,7 @@ namespace comp2014minipl
         {
             foreach (Connection c in connections)
             {
-                c.start += amount;
-                c.end += amount;
+                c.increment(amount);
             }
             for (int i = 0; i < endStates.Count; i++)
             {
@@ -142,7 +187,7 @@ namespace comp2014minipl
             //add connections between newly added states
             foreach (Connection c in second.connections)
             {
-                ret.connections.Add(new Connection(c));
+                ret.connections.Add(c.copy());
             }
             //connect new start states with old start state
             foreach (Connection c in ret.connections)
@@ -156,11 +201,11 @@ namespace comp2014minipl
             ret.calculateConnectionPerState();
             return ret;
         }
-        private void addConnectionToEndStates(int destination, char character)
+        private void addConnectionToEndStates(int destination, Connection connectionType)
         {
             foreach (int i in endStates)
             {
-                connect(i, destination, character);
+                connect(i, destination, connectionType);
             }
         }
         public NFA closure()
@@ -168,11 +213,17 @@ namespace comp2014minipl
             NFA ret = new NFA(this);
             int oldStartState = ret.startState;
             int newStartState = ret.addState(false);
-            ret.connect(newStartState, oldStartState, '\0');
-            ret.addConnectionToEndStates(newStartState, '\0');
+            ret.connect(newStartState, oldStartState, new EpsilonConnection(0, 0));
+            ret.addConnectionToEndStates(newStartState, new EpsilonConnection(0, 0));
             ret.endStates.Add(newStartState);
             ret.startState = newStartState;
             ret.hasEpsilons = true;
+            return ret;
+        }
+        public NFA maybe()
+        {
+            NFA ret = new NFA(this);
+            ret.endStates.Add(ret.startState);
             return ret;
         }
         public NFA conc(NFA second)
@@ -183,10 +234,10 @@ namespace comp2014minipl
             int secondStartState = second.startState;
             foreach (Connection c in second.connections)
             {
-                ret.connect(c.start, c.end, c.character);
+                ret.connections.Add(c.copy());
             }
             ret.calculateConnectionPerState();
-            ret.addConnectionToEndStates(secondStartState, '\0');
+            ret.addConnectionToEndStates(secondStartState, new EpsilonConnection(0, 0));
             foreach (int i in second.endStates)
             {
                 ret.endStates.Add(i);
@@ -203,7 +254,7 @@ namespace comp2014minipl
             List<Connection> epsilons = new List<Connection>();
             foreach (Connection c in connections)
             {
-                if (c.character == '\0')
+                if (c is EpsilonConnection)
                 {
                     epsilons.Add(c);
                 }
@@ -218,8 +269,9 @@ namespace comp2014minipl
                     List<Connection> newConnections = new List<Connection>();
                     foreach (Connection c2 in connectionPerState[c.end])
                     {
-                        Connection newConnection = new Connection(c.start, c2.end, c2.character);
-                        if (c2.character == '\0')
+                        Connection newConnection = c2.copy();
+                        newConnection.start = c.start;
+                        if (newConnection is EpsilonConnection)
                         {
                             newEpsilons.Add(newConnection);
                         }
@@ -227,7 +279,7 @@ namespace comp2014minipl
                         {
                             endStates.Add(c.start);
                         }
-                        System.Console.WriteLine("Added {0} {1} {2}", c.start, c2.end, c2.character);
+                        System.Console.WriteLine("Added {0} {1}", c.start, c2.end);
                         newConnections.Add(newConnection);
                     }
                     foreach (Connection c2 in newConnections)
@@ -235,7 +287,7 @@ namespace comp2014minipl
                         connections.Add(c2);
                         connectionPerState[c2.start].Add(c2);
                     }
-                    System.Console.WriteLine("Removed {0} {1} {2}", c.start, c.end, c.character);
+                    System.Console.WriteLine("Removed {0} {1}", c.start, c.end);
                     connections.Remove(c);
                     connectionPerState[c.start].Remove(c);
                 }
@@ -274,7 +326,7 @@ namespace comp2014minipl
             {
                 foreach (Connection c in connectionPerState[s.Item1])
                 {
-                    if (c.character == ch)
+                    if (c.accepts(ch))
                     {
                         newStates.Add(new Tuple<int, int>(c.end, s.Item2+1));
                     }

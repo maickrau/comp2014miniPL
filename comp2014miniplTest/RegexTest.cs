@@ -60,5 +60,19 @@ namespace comp2014miniplTest
             CollectionAssert.Contains(vals, new Tuple<int, int>(7, 10));
             CollectionAssert.DoesNotContain(vals, new Tuple<int, int>(5, 7));
         }
+        [TestMethod]
+        public void specialsWork()
+        {
+            Regex reg = new Regex("\\(\\)\\\\\\[\\]\\*\\?");
+            Assert.AreEqual(7, reg.recognize("()\\[]*?"));
+        }
+        [TestMethod]
+        public void maybeWorks()
+        {
+            Regex reg = new Regex("abc?d");
+            Assert.AreEqual(4, reg.recognize("abcd"));
+            Assert.AreEqual(3, reg.recognize("abd"));
+            Assert.AreEqual(0, reg.recognize("abccd"));
+        }
     }
 }

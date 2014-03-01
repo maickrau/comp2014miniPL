@@ -93,10 +93,18 @@ namespace comp2014minipl
                 retNFA = new NFA(str.Substring(loc, 1));
                 loc++;
             }
-            if (loc < str.Length && str[loc] == '*')
+            if (loc < str.Length)
             {
-                retNFA = retNFA.closure();
-                loc++;
+                if (str[loc] == '*')
+                {
+                    retNFA = retNFA.closure();
+                    loc++;
+                }
+                else if (str[loc] == '?')
+                {
+                    retNFA = retNFA.maybe();
+                    loc++;
+                }
             }
             return retNFA;
         }

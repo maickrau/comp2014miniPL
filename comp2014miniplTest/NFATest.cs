@@ -92,5 +92,13 @@ namespace comp2014miniplTest
             Assert.IsTrue(test.recognizes("hello"));
             Assert.IsFalse(test.recognizes("abc"));
         }
+        [TestMethod]
+        public void maybeWorks()
+        {
+            NFA maybe = new NFA("a").maybe();
+            Assert.IsTrue(maybe.recognizes("a"));
+            Assert.IsTrue(maybe.recognizes(""));
+            Assert.IsFalse(maybe.recognizes("aa"));
+        }
     }
 }
