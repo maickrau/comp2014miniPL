@@ -29,6 +29,7 @@ namespace comp2014minipl
         }
         private int startState;
         private int numStates;
+        private List<int> currentStates;
         private List<int> endStates;
         private List<Connection> connections;
         private List<List<Connection>> connectionPerState;
@@ -46,6 +47,20 @@ namespace comp2014minipl
             {
                 System.Console.WriteLine("{0} {1} {2}", c.start, c.end, c.character);
             }
+        }
+        public NFA(List<char> range)
+        {
+            endStates = new List<int>();
+            connections = new List<Connection>();
+            startState = 0;
+            foreach (char c in range)
+            {
+                connections.Add(new Connection(0, 1, c));
+            }
+            numStates = 2;
+            endStates.Add(1);
+            hasEpsilons = false;
+            calculateConnectionPerState();
         }
         public NFA(String str)
         {
@@ -231,26 +246,14 @@ namespace comp2014minipl
                 }
             }
         }
-        public bool recognizes(String str)
+        public void startRecognizing()
         {
             deEpsilonate();
-            List<int> currentStates = new List<int>();
+            currentStates = new List<int>();
             currentStates.Add(startState);
-            for (int i = 0; i < str.Length; i++)
-            {
-                List<int> newStates = new List<int>();
-                foreach (int s in currentStates)
-                {
-                    foreach (Connection c in connectionPerState[s])
-                    {
-                        if (c.character == str[i])
-                        {
-                            newStates.Add(c.end);
-                        }
-                    }
-                }
-                currentStates = newStates;
-            }
+        }
+        public bool recognizesCurrent()
+        {
             foreach (int i in currentStates)
             {
                 if (endStates.Contains(i))
@@ -259,6 +262,30 @@ namespace comp2014minipl
                 }
             }
             return false;
+        }
+        public void takeCharacter(char ch)
+        {
+            List<int> newStates = new List<int>();
+            foreach (int s in currentStates)
+            {
+                foreach (Connection c in connectionPerState[s])
+                {
+                    if (c.character == ch)
+                    {
+                        newStates.Add(c.end);
+                    }
+                }
+            }
+            currentStates = newStates;
+        }
+        public bool recognizes(String str)
+        {
+            startRecognizing();
+            for (int i = 0; i < str.Length; i++)
+            {
+                takeCharacter(str[i]);
+            }
+            return recognizesCurrent();
         }
     }
 }

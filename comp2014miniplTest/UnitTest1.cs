@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using comp2014minipl;
+using System.Collections.Generic;
 
 namespace comp2014miniplTest
 {
@@ -14,6 +15,19 @@ namespace comp2014miniplTest
             Assert.IsTrue(test.recognizes("hello"));
             Assert.IsFalse(test.recognizes("hell"));
             Assert.IsFalse(test.recognizes("helloo"));
+        }
+        [TestMethod]
+        public void rangeConstructorWorks()
+        {
+            List<char> range = new List<char>();
+            range.Add('a');
+            range.Add('b');
+            range.Add('c');
+            NFA test = new NFA(range);
+            Assert.IsTrue(test.recognizes("a"));
+            Assert.IsTrue(test.recognizes("b"));
+            Assert.IsTrue(test.recognizes("c"));
+            Assert.IsFalse(test.recognizes("d"));
         }
         [TestMethod]
         public void orWorks()
