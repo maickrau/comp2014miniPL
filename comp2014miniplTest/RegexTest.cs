@@ -63,8 +63,8 @@ namespace comp2014miniplTest
         [TestMethod]
         public void specialsWork()
         {
-            Regex reg = new Regex("\\(\\)\\\\\\[\\]\\*\\?");
-            Assert.AreEqual(7, reg.recognize("()\\[]*?"));
+            Regex reg = new Regex("\\(\\)\\\\\\[\\]\\*\\?\\.");
+            Assert.AreEqual(8, reg.recognize("()\\[]*?."));
         }
         [TestMethod]
         public void maybeWorks()
@@ -73,6 +73,44 @@ namespace comp2014miniplTest
             Assert.AreEqual(4, reg.recognize("abcd"));
             Assert.AreEqual(3, reg.recognize("abd"));
             Assert.AreEqual(0, reg.recognize("abccd"));
+        }
+        [TestMethod]
+        public void exclusionWorks()
+        {
+            Regex reg = new Regex("ab[^cd]e");
+            Assert.AreEqual(4, reg.recognize("abhe"));
+            Assert.AreEqual(4, reg.recognize("abee"));
+            Assert.AreEqual(4, reg.recognize("abae"));
+            Assert.AreEqual(0, reg.recognize("abce"));
+            Assert.AreEqual(0, reg.recognize("abde"));
+            Assert.AreEqual(0, reg.recognize("abe"));
+        }
+        [TestMethod]
+        public void rangeWorks()
+        {
+            Regex reg = new Regex("[b-e]");
+            Assert.AreEqual(0, reg.recognize("a"));
+            Assert.AreEqual(1, reg.recognize("b"));
+            Assert.AreEqual(1, reg.recognize("c"));
+            Assert.AreEqual(1, reg.recognize("d"));
+            Assert.AreEqual(1, reg.recognize("e"));
+            Assert.AreEqual(0, reg.recognize("f"));
+        }
+        [TestMethod]
+        public void numberWorks()
+        {
+            Regex reg = new Regex("[1-9][0-9]*");
+            Assert.AreEqual(3, reg.recognize("100"));
+            Assert.AreEqual(5, reg.recognize("12345"));
+            Assert.AreEqual(0, reg.recognize("0100"));
+        }
+        [TestMethod]
+        public void anythingWorks()
+        {
+            Regex reg = new Regex("abc.ef");
+            Assert.AreEqual(6, reg.recognize("abcdef"));
+            Assert.AreEqual(6, reg.recognize("abcaef"));
+            Assert.AreEqual(6, reg.recognize("abc.ef"));
         }
     }
 }

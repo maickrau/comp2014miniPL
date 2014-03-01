@@ -10,10 +10,21 @@ namespace comp2014minipl
     {
         static void Main(string[] args)
         {
-            Regex reg = new Regex("a*");
+            /*
+            NFA a = new NFA("a");
+            NFA b = new NFA("b");
+            NFA empty = new NFA("");
+            NFA test = new NFA(1).complement();
+            test.debugPrint();
+            test.recognizes("a");
+            test.debugPrint();
+            */
+
+            Regex reg = new Regex("a[b-d]e");
             reg.nfa.debugPrint();
-            reg.recognize("abc");
+            reg.recognize("a");
             reg.nfa.debugPrint();
+            
             System.Console.ReadLine();
         }
     }

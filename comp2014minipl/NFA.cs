@@ -11,6 +11,10 @@ namespace comp2014minipl
     {
         private abstract class Connection
         {
+            public override int GetHashCode()
+            {
+                return start ^ end;
+            }
             public int start;
             public int end;
             public abstract Connection copy();
@@ -21,9 +25,53 @@ namespace comp2014minipl
                 end += amount;
             }
             public abstract String debugString();
+            public virtual HashSet<char> acceptSet()
+            {
+                return new HashSet<char>();
+            }
+            public virtual HashSet<char> interestingCharacters()
+            {
+                return acceptSet();
+            }
+        }
+        private class AnythingConnection : Connection
+        {
+            public override bool Equals(Object second)
+            {
+                if (!(second is AnythingConnection))
+                {
+                    return false;
+                }
+                return start == ((AnythingConnection)second).start && end == ((AnythingConnection)second).end;
+            }
+            public AnythingConnection(int start, int end)
+            {
+                this.start = start;
+                this.end = end;
+            }
+            public override Connection copy()
+            {
+                return new AnythingConnection(start, end);
+            }
+            public override bool accepts(char ch)
+            {
+                return true;
+            }
+            public override string debugString()
+            {
+                return new StringBuilder().Append(start).Append(" ").Append(end).Append(" anything").ToString();
+            }
         }
         private class EpsilonConnection : Connection
         {
+            public override bool Equals(Object second)
+            {
+                if (!(second is EpsilonConnection))
+                {
+                    return false;
+                }
+                return start == ((EpsilonConnection)second).start && end == ((EpsilonConnection)second).end;
+            }
             public EpsilonConnection(int start, int end)
             {
                 this.start = start;
@@ -42,39 +90,117 @@ namespace comp2014minipl
                 return new StringBuilder().Append(start).Append(" ").Append(end).Append(" epsilon").ToString();
             }
         }
-        private class ConnectionExactCharacter : Connection
+        private class ConnectionAnyOf : Connection
         {
-            private char character; // '\0' is epsilon
-            public ConnectionExactCharacter(ConnectionExactCharacter second)
+            public override bool Equals(Object second)
             {
-                this.start = second.start;
-                this.end = second.end;
-                this.character = second.character;
+                if (!(second is ConnectionAnyOf))
+                {
+                    return false;
+                }
+                return start == ((ConnectionAnyOf)second).start && end == ((ConnectionAnyOf)second).end && allowed.SetEquals(((ConnectionAnyOf)second).allowed);
             }
+            protected HashSet<char> allowed;
+            public ConnectionAnyOf()
+            {
+                start = -1;
+                end = -1;
+                allowed = new HashSet<char>();
+            }
+            public ConnectionAnyOf(int start, int end, HashSet<char> allowed)
+            {
+                this.start = start;
+                this.end = end;
+                this.allowed = new HashSet<char>(allowed);
+            }
+            public ConnectionAnyOf(ConnectionAnyOf second)
+            {
+                start = second.start;
+                end = second.end;
+                allowed = new HashSet<char>(second.allowed);
+            }
+            public override Connection copy()
+            {
+                return new ConnectionAnyOf(this);
+            }
+            public override bool accepts(char ch)
+            {
+                return allowed.Contains(ch);
+            }
+            public override HashSet<char> acceptSet()
+            {
+                return new HashSet<char>(allowed);
+            }
+            public override string debugString()
+            {
+                StringBuilder str = new StringBuilder().Append(start).Append(" ").Append(end).Append(" ");
+                foreach (char c in allowed)
+                {
+                    str.Append(c).Append(" ");
+                }
+                return str.ToString();
+            }
+        }
+        private class ConnectionExactCharacter : ConnectionAnyOf
+        {
             public ConnectionExactCharacter(int start, int end, char character)
             {
                 this.start = start;
                 this.end = end;
-                this.character = character;
+                this.allowed = new HashSet<char>();
+                this.allowed.Add(character);
+            }
+        }
+        private class ConnectionAnythingBut : Connection
+        {
+            public override bool Equals(Object second)
+            {
+                if (!(second is ConnectionAnythingBut))
+                {
+                    return false;
+                }
+                return start == ((ConnectionAnythingBut)second).start && end == ((ConnectionAnythingBut)second).end && forbidden.SetEquals(((ConnectionAnythingBut)second).forbidden);
+            }
+            public HashSet<char> forbidden;
+            public ConnectionAnythingBut(int start, int end, HashSet<char> forbidden)
+            {
+                this.start = start;
+                this.end = end;
+                this.forbidden = new HashSet<char>(forbidden);
+            }
+            public ConnectionAnythingBut(ConnectionAnythingBut second)
+            {
+                this.start = second.start;
+                this.end = second.end;
+                this.forbidden = new HashSet<char>(second.forbidden);
+            }
+            public override bool accepts(char ch)
+            {
+                return !forbidden.Contains(ch);
             }
             public override Connection copy()
             {
-                return new ConnectionExactCharacter(start, end, character);
-            }
-            public override bool accepts(char c)
-            {
-                return c == character;
+                return new ConnectionAnythingBut(this);
             }
             public override string debugString()
             {
-                return new StringBuilder().Append(start).Append(" ").Append(end).Append(" ").Append(character).ToString();
+                StringBuilder str = new StringBuilder().Append(start).Append(" ").Append(end).Append(" not ");
+                foreach (char c in forbidden)
+                {
+                    str.Append(c).Append(" ");
+                }
+                return str.ToString();
+            }
+            public override HashSet<char> interestingCharacters()
+            {
+                return new HashSet<char>(forbidden);
             }
         }
 
         private int startState;
         private int numStates;
         private List<Tuple<int, int>> currentStates;
-        private List<int> endStates;
+        private HashSet<int> endStates;
         private List<Connection> connections;
         private List<List<Connection>> connectionPerState;
         private bool hasEpsilons;
@@ -92,32 +218,57 @@ namespace comp2014minipl
                 System.Console.WriteLine(c.debugString());
             }
         }
-        public NFA(List<char> range)
+        public NFA()
         {
-            endStates = new List<int>();
+            endStates = new HashSet<int>();
             connections = new List<Connection>();
+            connectionPerState = new List<List<Connection>>();
+            connectionPerState.Add(new List<Connection>());
             startState = 0;
+            numStates = 1;
+            hasEpsilons = false;
+        }
+        public NFA(HashSet<char> range) : this()
+        {
+            //any one of these characters
+            numStates++;
             foreach (char c in range)
             {
                 connections.Add(new ConnectionExactCharacter(0, 1, c));
             }
-            numStates = 2;
             endStates.Add(1);
-            hasEpsilons = false;
             calculateConnectionPerState();
         }
-        public NFA(String str)
+        public NFA(String str) : this()
         {
-            endStates = new List<int>();
-            connections = new List<Connection>();
-            startState = 0;
+            //exactly this string
             for (int i = 0; i < str.Length; i++)
             {
                 connections.Add(new ConnectionExactCharacter(i, i + 1, str[i]));
             }
             numStates = str.Length + 1;
             endStates.Add(str.Length);
-            hasEpsilons = false;
+            calculateConnectionPerState();
+        }
+        public NFA(int len) : this()
+        {
+            //any string with length len
+            for (int i = 0; i < len; i++)
+            {
+                connections.Add(new AnythingConnection(i, i + 1));
+            }
+            numStates = len + 1;
+            endStates.Add(len);
+            calculateConnectionPerState();
+        }
+        public NFA(NFA second)
+        {
+            //we want to create a deep copy instead of modifying the original
+            connections = second.connections.ConvertAll(c => c.copy());
+            endStates = new HashSet<int>(second.endStates);
+            startState = second.startState;
+            numStates = second.numStates;
+            hasEpsilons = second.hasEpsilons;
             calculateConnectionPerState();
         }
         private int addState(bool endState)
@@ -151,15 +302,217 @@ namespace comp2014minipl
                 connectionPerState[c.start].Add(c);
             }
         }
-        public NFA(NFA second)
+        private List<char> connectionsFrom(int state)
         {
-            //we want to create a deep copy instead of modifying the original
-            connections = second.connections.ConvertAll(c => c.copy());
-            endStates = new List<int>(second.endStates);
-            startState = second.startState;
-            numStates = second.numStates;
-            hasEpsilons = second.hasEpsilons;
+            List<char> ret = new List<char>();
+            foreach (Connection c in connectionPerState[state])
+            {
+                ret.AddRange(c.acceptSet());
+            }
+            return ret;
+        }
+        private void removeEmptyAnythingButs()
+        {
+            for (int i = connections.Count-1; i >= 0; i--)
+            {
+                if (connections[i] is ConnectionAnythingBut)
+                {
+                    if (((ConnectionAnythingBut)connections[i]).forbidden.Count == 0)
+                    {
+                        connections.RemoveAt(i);
+                    }
+                }
+            }
             calculateConnectionPerState();
+        }
+        private void removeDoubleConnections()
+        {
+            for (int a = 0; a < connections.Count; a++)
+            {
+                for (int b = connections.Count-1; b > a; b--)
+                {
+                    if (connections[a].Equals(connections[b]))
+                    {
+                        connections.RemoveAt(b);
+                    }
+                }
+            }
+            calculateConnectionPerState();
+        }
+        public NFA toDFA()
+        {
+            NFA temp = new NFA(this);
+            NFA ret = new NFA();
+            temp.deEpsilonate();
+            List<HashSet<int>> newStates = new List<HashSet<int>>();
+            newStates.Add(new HashSet<int>());
+            Queue<HashSet<int>> statesThatNeedProcessing = new Queue<HashSet<int>>();
+            HashSet<int> startState = new HashSet<int>();
+            startState.Add(temp.startState);
+            ret.startState = ret.addState(temp.endStates.Contains(temp.startState));
+            newStates.Add(startState);
+            statesThatNeedProcessing.Enqueue(startState);
+            while (statesThatNeedProcessing.Count > 0)
+            {
+                HashSet<int> newState = statesThatNeedProcessing.Dequeue();
+                int hasState = newStates.FindIndex(h => newState.SetEquals(h));
+                List<Connection> allConnections = new List<Connection>();
+                List<Connection> uninterestingConnections = new List<Connection>();
+                HashSet<int> anyReachable = new HashSet<int>();
+                foreach (int i in newState)
+                {
+                    allConnections.AddRange(temp.connectionPerState[i]);
+                }
+                HashSet<char> interestingChars = new HashSet<char>();
+                foreach (Connection c in allConnections)
+                {
+                    if (c is AnythingConnection)
+                    {
+                        anyReachable.Add(c.end);
+                    }
+                    if (c is AnythingConnection || c is ConnectionAnythingBut)
+                    {
+                        uninterestingConnections.Add(c);
+                    }
+                    interestingChars.UnionWith(c.interestingCharacters());
+                }
+                foreach (char ch in interestingChars)
+                {
+                    HashSet<int> reachable = new HashSet<int>();
+                    foreach (Connection c in allConnections)
+                    {
+                        if (c.accepts(ch))
+                        {
+                            reachable.Add(c.end);
+                        }
+                    }
+                    int newAddIndex = newStates.FindIndex(h => reachable.SetEquals(h));
+                    if (newAddIndex == -1)
+                    {
+                        bool endState = false;
+                        foreach (int i in reachable)
+                        {
+                            if (temp.endStates.Contains(i))
+                            {
+                                endState = true;
+                                break;
+                            }
+                        }
+                        newAddIndex = ret.addState(endState);
+                        newStates.Add(reachable);
+                        statesThatNeedProcessing.Enqueue(reachable);
+                    }
+                    ret.connect(hasState, newAddIndex, new ConnectionExactCharacter(hasState, newAddIndex, ch));
+                }
+                if (uninterestingConnections.Count > 0)
+                {
+                    HashSet<int> reachable = new HashSet<int>();
+                    foreach (Connection c in uninterestingConnections)
+                    {
+                        reachable.Add(c.end);
+                    }
+                    int newAddIndex = newStates.FindIndex(h => reachable.SetEquals(h));
+                    if (newAddIndex == -1)
+                    {
+                        bool endState = false;
+                        foreach (int i in reachable)
+                        {
+                            if (temp.endStates.Contains(i))
+                            {
+                                endState = true;
+                                break;
+                            }
+                        }
+                        newAddIndex = ret.addState(endState);
+                        newStates.Add(reachable);
+                        statesThatNeedProcessing.Enqueue(reachable);
+                    }
+                    if (interestingChars.Count > 0)
+                    {
+                        ret.connect(hasState, newAddIndex, new ConnectionAnythingBut(hasState, newAddIndex, interestingChars));
+                    }
+                    else
+                    {
+                        ret.connect(hasState, newAddIndex, new AnythingConnection(hasState, newAddIndex));
+                    }
+                }
+            }
+            int garbageState = ret.addState(false);
+            ret.calculateConnectionPerState();
+            for (int i = 1; i < ret.numStates; i++)
+            {
+                HashSet<char> unUsableConnections = new HashSet<char>();
+                foreach (Connection c in ret.connectionPerState[i])
+                {
+                    unUsableConnections.UnionWith(c.acceptSet());
+                }
+                bool canUseAll = true;
+                bool canUseAny = true;
+                HashSet<char> usableConnections = new HashSet<char>();
+                foreach (Connection c in ret.connectionPerState[i])
+                {
+                    if (c is AnythingConnection)
+                    {
+                        canUseAny = false;
+                        break;
+                    }
+                    if (c is ConnectionAnythingBut)
+                    {
+                        if (canUseAll)
+                        {
+                            usableConnections = new HashSet<char>(((ConnectionAnythingBut)c).forbidden);
+                            canUseAll = false;
+                        }
+                        else
+                        {
+                            usableConnections.IntersectWith(((ConnectionAnythingBut)c).forbidden);
+                        }
+                    }
+                }
+                if (canUseAny)
+                {
+                    if (!canUseAll)
+                    {
+                        usableConnections.ExceptWith(unUsableConnections);
+                        if (usableConnections.Count > 0)
+                        {
+                            ret.connect(i, garbageState, new ConnectionAnyOf(i, garbageState, usableConnections));
+                        }
+                    }
+                    else
+                    {
+                        if (unUsableConnections.Count > 0)
+                        {
+                            ret.connect(i, garbageState, new ConnectionAnythingBut(i, garbageState, unUsableConnections));
+                        }
+                        else
+                        {
+                            ret.connect(i, garbageState, new AnythingConnection(i, garbageState));
+                        }
+                    }
+                }
+            }
+            ret.connect(garbageState, garbageState, new AnythingConnection(garbageState, garbageState));
+            ret.calculateConnectionPerState();
+            return ret;
+        }
+        public NFA complement()
+        {
+            return this.toDFA().not();
+        }
+        public NFA not()
+        {
+            NFA ret = new NFA(this);
+            HashSet<int> newEndStates = new HashSet<int>();
+            for (int i = 0; i < ret.numStates; i++)
+            {
+                if (!ret.endStates.Contains(i))
+                {
+                    newEndStates.Add(i);
+                }
+            }
+            ret.endStates = newEndStates;
+            return ret;
         }
         private void incrementIndices(int amount)
         {
@@ -167,10 +520,12 @@ namespace comp2014minipl
             {
                 c.increment(amount);
             }
-            for (int i = 0; i < endStates.Count; i++)
+            HashSet<int> newEndStates = new HashSet<int>();
+            foreach (int i in endStates)
             {
-                endStates[i] += amount;
+                newEndStates.Add(i + amount);
             }
+            endStates = newEndStates;
             startState += amount;
             numStates += amount;
             calculateConnectionPerState();
@@ -190,14 +545,8 @@ namespace comp2014minipl
                 ret.connections.Add(c.copy());
             }
             //connect new start states with old start state
-            foreach (Connection c in ret.connections)
-            {
-                if (c.start == second.startState)
-                {
-                    c.start = ret.startState;
-                }
-            }
-            ret.hasEpsilons = hasEpsilons | second.hasEpsilons;
+            ret.connect(ret.startState, second.startState, new EpsilonConnection(-1, -1));
+            ret.hasEpsilons = true;
             ret.calculateConnectionPerState();
             return ret;
         }
@@ -211,12 +560,15 @@ namespace comp2014minipl
         public NFA closure()
         {
             NFA ret = new NFA(this);
+            //add new start state
             int oldStartState = ret.startState;
             int newStartState = ret.addState(false);
-            ret.connect(newStartState, oldStartState, new EpsilonConnection(0, 0));
-            ret.addConnectionToEndStates(newStartState, new EpsilonConnection(0, 0));
-            ret.endStates.Add(newStartState);
             ret.startState = newStartState;
+            ret.connect(newStartState, oldStartState, new EpsilonConnection(0, 0));
+            //add connections from old end states to old start state
+            ret.addConnectionToEndStates(oldStartState, new EpsilonConnection(0, 0));
+            //old start state is a valid end state
+            ret.endStates.Add(newStartState);
             ret.hasEpsilons = true;
             return ret;
         }
@@ -229,74 +581,82 @@ namespace comp2014minipl
         public NFA conc(NFA second)
         {
             NFA ret = new NFA(this);
+            //add new states
             ret.incrementIndices(second.numStates);
-            List<int> oldEndStates = new List<int>(ret.endStates);
-            int secondStartState = second.startState;
             foreach (Connection c in second.connections)
             {
                 ret.connections.Add(c.copy());
             }
             ret.calculateConnectionPerState();
+            //connect old end states to second's start state
+            int secondStartState = second.startState;
             ret.addConnectionToEndStates(secondStartState, new EpsilonConnection(0, 0));
-            foreach (int i in second.endStates)
-            {
-                ret.endStates.Add(i);
-            }
+            //fix end states as second's end states
+            ret.endStates = new HashSet<int>(second.endStates);
             ret.hasEpsilons = true;
-            foreach (int i in oldEndStates)
-            {
-                ret.endStates.Remove(i);
-            }
             return ret;
         }
         public void deEpsilonate()
         {
-            List<Connection> epsilons = new List<Connection>();
+            HashSet<Tuple<int, int>> epsilons = new HashSet<Tuple<int, int>>();
             foreach (Connection c in connections)
             {
                 if (c is EpsilonConnection)
                 {
-                    epsilons.Add(c);
+                    epsilons.Add(new Tuple<int, int>(c.start, c.end));
                 }
             }
-            hasEpsilons = epsilons.Count != 0;
-            while (hasEpsilons)
+            bool addedNew = true;
+            while (addedNew)
             {
-                System.Console.WriteLine(epsilons.Count);
-                List<Connection> newEpsilons = new List<Connection>();
-                foreach (Connection c in epsilons)
+                addedNew = false;
+                HashSet<Tuple<int, int>> newEpsilons = new HashSet<Tuple<int, int>>(epsilons);
+                foreach (Tuple<int, int> a in epsilons)
                 {
-                    List<Connection> newConnections = new List<Connection>();
-                    foreach (Connection c2 in connectionPerState[c.end])
+                    foreach (Tuple<int, int> b in epsilons)
                     {
-                        Connection newConnection = c2.copy();
-                        newConnection.start = c.start;
-                        if (newConnection is EpsilonConnection)
+                        if (a.Item2 == b.Item1)
                         {
-                            newEpsilons.Add(newConnection);
+                            if (newEpsilons.Add(new Tuple<int, int>(a.Item1, b.Item2)))
+                            {
+                                addedNew = true;
+                            }
                         }
-                        if (endStates.Contains(c.end) && !endStates.Contains(c.start))
-                        {
-                            endStates.Add(c.start);
-                        }
-                        System.Console.WriteLine("Added {0} {1}", c.start, c2.end);
-                        newConnections.Add(newConnection);
                     }
-                    foreach (Connection c2 in newConnections)
-                    {
-                        connections.Add(c2);
-                        connectionPerState[c2.start].Add(c2);
-                    }
-                    System.Console.WriteLine("Removed {0} {1}", c.start, c.end);
-                    connections.Remove(c);
-                    connectionPerState[c.start].Remove(c);
                 }
                 epsilons = newEpsilons;
-                if (epsilons.Count == 0)
+            }
+            foreach (Tuple<int, int> e in epsilons)
+            {
+                if (endStates.Contains(e.Item2))
                 {
-                    hasEpsilons = false;
+                    endStates.Add(e.Item1);
+                }
+                List<Connection> newConnections = new List<Connection>();
+                foreach (Connection c2 in connectionPerState[e.Item2])
+                {
+                    if (!(c2 is EpsilonConnection))
+                    {
+                        Connection newConnection = c2.copy();
+                        newConnection.start = e.Item1;
+                        newConnections.Add(newConnection);
+                    }
+                }
+                foreach(Connection c in newConnections)
+                {
+                    connect(c.start, c.end, c);
                 }
             }
+            for (int i = connections.Count - 1; i >= 0; i--)
+            {
+                if (connections[i] is EpsilonConnection)
+                {
+                    connections.RemoveAt(i);
+                }
+            }
+            hasEpsilons = false;
+            removeEmptyAnythingButs();
+            removeDoubleConnections();
         }
         public void startRecognizing()
         {

@@ -88,6 +88,11 @@ namespace comp2014minipl
             {
                 retNFA = parseSpecial(str, ref loc);
             }
+            else if (str[loc] == '.')
+            {
+                retNFA = new NFA(1);
+                loc++;
+            }
             else
             {
                 retNFA = new NFA(str.Substring(loc, 1));
@@ -112,16 +117,56 @@ namespace comp2014minipl
         {
             //str[loc] == '['
             loc++;
-            NFA builtNFA = parseOne(str, ref loc);
+            bool exclusion = false;
+            if (str[loc] == '^')
+            {
+                exclusion = true;
+                loc++;
+            }
+            NFA builtNFA = null;
             while (str[loc] != ']')
             {
                 if (loc >= str.Length)
                 {
                     throw new Exception("Regex has a [ without a matching ]");
                 }
-                NFA nextNFA = parseOne(str, ref loc);
-                builtNFA = builtNFA.or(nextNFA);
+                NFA nextNFA;
+                if (str[loc] == '\\')
+                {
+                    nextNFA = parseSpecial(str, ref loc);
+                }
+                else if (loc < str.Length-1 && str[loc+1] == '-')
+                {
+                    char start = str[loc];
+                    loc += 2;
+                    char end = str[loc];
+                    HashSet<char> chars = new HashSet<char>();
+                    for (char ch = start; ch <= end; ch++)
+                    {
+                        chars.Add(ch);
+                    }
+                    nextNFA = new NFA(chars);
+                    loc++;
+                }
+                else
+                {
+                    nextNFA = new NFA(str.Substring(loc, 1));
+                    loc++;
+                }
+                if (builtNFA == null)
+                {
+                    builtNFA = nextNFA;
+                }
+                else
+                {
+                    builtNFA = builtNFA.or(nextNFA);
+                }
             }
+            if (exclusion)
+            {
+                builtNFA = builtNFA.complement();
+            }
+            builtNFA = builtNFA.complement().or(new NFA(1).complement()).complement();
             loc++;
             //loc is first character after ]
             return builtNFA;
