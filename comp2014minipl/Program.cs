@@ -10,7 +10,7 @@ namespace comp2014minipl
     {
         static void Main(string[] args)
         {
-            Regex reg = new Regex("a[bcd]e");
+            Regex reg = new Regex("a*");
             reg.nfa.debugPrint();
             reg.recognize("abc");
             reg.nfa.debugPrint();

@@ -31,12 +31,29 @@ namespace comp2014minipl
             for (int i = 0; i < str.Length; i++)
             {
                 nfa.takeCharacter(str[i]);
-                if (nfa.recognizesCurrent())
+                int recognizes = nfa.recognizesCurrent();
+                if (recognizes > -1)
                 {
-                    longestRecognition = i + 1;
+                    longestRecognition = recognizes;
                 }
             }
             return longestRecognition;
+        }
+        public List<Tuple<int, int>> recognizeAll(String str)
+        {
+            List<Tuple<int, int>> all = new List<Tuple<int, int>>();
+            nfa.startRecognizing();
+            for (int i = 0; i < str.Length; i++)
+            {
+                nfa.takeCharacter(str[i]);
+                nfa.alsoRecognizeFromHere();
+                int recognizes = nfa.recognizesCurrent();
+                if (recognizes > -1)
+                {
+                    all.Add(new Tuple<int, int>(i + 1 - recognizes, i + 1));
+                }
+            }
+            return all;
         }
         private NFA parseParenthesis(string str, ref int loc)
         {

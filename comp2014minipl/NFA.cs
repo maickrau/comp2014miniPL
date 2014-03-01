@@ -29,7 +29,7 @@ namespace comp2014minipl
         }
         private int startState;
         private int numStates;
-        private List<int> currentStates;
+        private List<Tuple<int, int>> currentStates;
         private List<int> endStates;
         private List<Connection> connections;
         private List<List<Connection>> connectionPerState;
@@ -249,30 +249,34 @@ namespace comp2014minipl
         public void startRecognizing()
         {
             deEpsilonate();
-            currentStates = new List<int>();
-            currentStates.Add(startState);
+            currentStates = new List<Tuple<int, int>>();
+            currentStates.Add(new Tuple<int, int>(startState, 0));
         }
-        public bool recognizesCurrent()
+        public void alsoRecognizeFromHere()
         {
-            foreach (int i in currentStates)
+            currentStates.Add(new Tuple<int, int>(startState, 0));
+        }
+        public int recognizesCurrent()
+        {
+            foreach (Tuple<int, int> i in currentStates)
             {
-                if (endStates.Contains(i))
+                if (endStates.Contains(i.Item1))
                 {
-                    return true;
+                    return i.Item2;
                 }
             }
-            return false;
+            return -1;
         }
         public void takeCharacter(char ch)
         {
-            List<int> newStates = new List<int>();
-            foreach (int s in currentStates)
+            List<Tuple<int, int>> newStates = new List<Tuple<int, int>>();
+            foreach (Tuple<int, int> s in currentStates)
             {
-                foreach (Connection c in connectionPerState[s])
+                foreach (Connection c in connectionPerState[s.Item1])
                 {
                     if (c.character == ch)
                     {
-                        newStates.Add(c.end);
+                        newStates.Add(new Tuple<int, int>(c.end, s.Item2+1));
                     }
                 }
             }
@@ -285,7 +289,7 @@ namespace comp2014minipl
             {
                 takeCharacter(str[i]);
             }
-            return recognizesCurrent();
+            return recognizesCurrent() > -1;
         }
     }
 }
