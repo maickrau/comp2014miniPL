@@ -11,6 +11,10 @@ namespace comp2014minipl
     }
     public class Operator : Token
     {
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
         public override bool Equals(object obj)
         {
             if (!(obj is Operator))
@@ -27,6 +31,10 @@ namespace comp2014minipl
     }
     public class Whitespace : Token
     {
+        public override int GetHashCode()
+        {
+            return "".GetHashCode();
+        }
         public override bool Equals(object obj)
         {
             if (!(obj is Whitespace))
@@ -41,6 +49,10 @@ namespace comp2014minipl
     }
     public class Keyword : Token
     {
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
         public override bool Equals(object obj)
         {
             if (!(obj is Keyword))
@@ -57,6 +69,10 @@ namespace comp2014minipl
     }
     public class IntLiteral : Token
     {
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
         public override bool Equals(object obj)
         {
             if (!(obj is IntLiteral))
@@ -73,6 +89,14 @@ namespace comp2014minipl
     }
     public class StringLiteral : Token
     {
+        public override string ToString()
+        {
+            return "Stringliteral:\"" + value + "\"";
+        }
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
         public override bool Equals(object obj)
         {
             if (!(obj is StringLiteral))
@@ -120,6 +144,10 @@ namespace comp2014minipl
     }
     public class BoolLiteral : Token
     {
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
         public override bool Equals(object obj)
         {
             if (!(obj is BoolLiteral))
@@ -143,6 +171,10 @@ namespace comp2014minipl
     }
     public class Identifier : Token
     {
+        public override int GetHashCode()
+        {
+            return value.GetHashCode();
+        }
         public override bool Equals(object obj)
         {
             if (!(obj is Identifier))
@@ -214,6 +246,10 @@ namespace comp2014minipl
                     {
                         ret.Add((Token)System.Activator.CreateInstance(longestMunch.Item1, text.Substring(loc, longestMunch.Item2)));
                     }
+                }
+                if (lengthMunched == 0)
+                {
+                    throw new Exception("Scanner: Couldn't munch any more input at location " + loc);
                 }
                 loc += lengthMunched;
             }

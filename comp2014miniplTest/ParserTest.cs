@@ -1,15 +1,17 @@
 ﻿using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using comp2014minipl;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace comp2014minipl
+namespace comp2014miniplTest
 {
-    class Program
+    [TestClass]
+    public class ParserTest
     {
-        static void Main(string[] args)
+        [TestMethod]
+        public void ParsesSimple()
         {
+            //corrected grammar from week 5 exercise 3
             Parser p = new Parser();
             NonTerminal L = new NonTerminal("L");
             NonTerminal Q = new NonTerminal("Q");
@@ -69,12 +71,20 @@ namespace comp2014minipl
             parseThese.Add(c);
             parseThese.Add(a);
             p.setStartSymbol(L);
-            p.DebugPrint();
-            System.Console.WriteLine();
             p.prepareForParsing();
-            p.DebugPrint();
             SyntaxTree parsed = p.parse(parseThese);
-            System.Console.ReadLine();
+            Assert.AreEqual(L, parsed.root.token);
+            Assert.AreEqual(R, parsed.root.children[0].token);
+            Assert.AreEqual(a, parsed.root.children[0].children[0].token);
+            Assert.AreEqual(b, parsed.root.children[0].children[1].token);
+            Assert.AreEqual(a, parsed.root.children[0].children[2].token);
+            Assert.AreEqual(R2, parsed.root.children[0].children[3].token);
+            Assert.AreEqual(b, parsed.root.children[0].children[3].children[0].token);
+            Assert.AreEqual(c, parsed.root.children[0].children[3].children[1].token);
+            Assert.AreEqual(R2, parsed.root.children[0].children[3].children[2].token);
+            Assert.AreEqual(b, parsed.root.children[0].children[3].children[2].children[0].token);
+            Assert.AreEqual(c, parsed.root.children[0].children[3].children[2].children[1].token);
+            Assert.AreEqual(a, parsed.root.children[1].token);
         }
     }
 }
