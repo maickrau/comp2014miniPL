@@ -55,6 +55,8 @@
     <Compile Include="RegexTest.cs" />
     <Compile Include="ScannerTest.cs" />
     <Compile Include="ParserTest.cs" />
+    <Compile Include="MiniPLGrammarTest.cs" />
+    <Compile Include="ASTTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\comp2014minipl\comp2014minipl.csproj">

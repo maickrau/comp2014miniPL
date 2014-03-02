@@ -220,6 +220,12 @@ namespace comp2014minipl
                 case 'n':
                     ret = new NFA("\n");
                     break;
+                case 't':
+                    ret = new NFA("\t");
+                    break;
+                case 'r':
+                    ret = new NFA("\r");
+                    break;
                 case '\'':
                     ret = new NFA("\'");
                     break;

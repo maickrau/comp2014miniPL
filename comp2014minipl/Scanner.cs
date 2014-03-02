@@ -65,6 +65,10 @@ namespace comp2014minipl
         {
             value = str;
         }
+        public override String ToString()
+        {
+            return "Keyword:\"" + value + "\"";
+        }
         public String value;
     }
     public class IntLiteral : Token
@@ -187,13 +191,17 @@ namespace comp2014minipl
         {
             value = str;
         }
+        public override string ToString()
+        {
+            return "Identifier:\"" + value + "\"";
+        }
         public String value;
     }
     public class Scanner
     {
         List<Tuple<Type, Regex>> scannables;
         Regex identifier;
-        public Scanner(String numberRegex = "(0|-?[1-9][0-9]*)", String stringRegex = "\"([^\\\\]|\\[^\"])*\"", String whitespaceRegex = "[ \n]*", String identifierRegex = "[a-zA-Z_]*")
+        public Scanner(String numberRegex = "(0|-?[1-9][0-9]*)", String stringRegex = "\"([^\\\\]|\\[^\"])*\"", String whitespaceRegex = "[ \n\t\r]*", String identifierRegex = "[a-zA-Z_][0-9a-zA-Z_]*")
         {
             //just in case the syntax of a number changes tomorrow
             identifier = new Regex(identifierRegex);
@@ -209,9 +217,9 @@ namespace comp2014minipl
             scannables.Add(truee);
             scannables.Add(falsee);
         }
-        public void addKeyword(String keyword)
+        public void addKeyword(String keywordRegex)
         {
-            scannables.Add(new Tuple<Type, Regex>(typeof(Keyword), new Regex(keyword)));
+            scannables.Add(new Tuple<Type, Regex>(typeof(Keyword), new Regex(keywordRegex)));
         }
         public void addOperator(String op)
         {

@@ -330,26 +330,51 @@ namespace comp2014minipl
         }
         public void prepareForParsing()
         {
+            if (startSymbol == null)
+            {
+                throw new Exception("Parser needs to have start symbol before preparing to parse");
+            }
             calculateTerminals();
             calculatePredict();
         }
         public void parse(SyntaxNode currentNode, List<Token> tokens, ref int loc)
         {
+            if (startSymbol == null)
+            {
+                throw new Exception("Parser needs to have start symbol before parsing");
+            }
             if (languageTerminals.Contains(currentNode.token))
             {
+                currentNode.token = tokens[loc];
                 loc++;
                 return;
             }
-            Token currentToken;
+            Token predictToken;
             if (loc < tokens.Count)
             {
-                currentToken = tokens[loc];
+                predictToken = tokens[loc];
             }
             else
             {
-                currentToken = eof;
+                predictToken = eof;
             }
-            if (!predict.ContainsKey(new Tuple<Token, Token>(currentNode.token, currentToken)))
+            if (predictToken is Identifier)
+            {
+                predictToken = new Identifier("");
+            }
+            if (predictToken is IntLiteral)
+            {
+                predictToken = new IntLiteral("0");
+            }
+            if (predictToken is StringLiteral)
+            {
+                predictToken = new StringLiteral("");
+            }
+            if (predictToken is BoolLiteral)
+            {
+                predictToken = new BoolLiteral("");
+            }
+            if (!predict.ContainsKey(new Tuple<Token, Token>(currentNode.token, predictToken)))
             {
                 String expectedSymbols = "";
                 foreach (Tuple<Token, Token> t in predict.Keys)
@@ -359,9 +384,9 @@ namespace comp2014minipl
                         expectedSymbols += t.Item2 + " ";
                     }
                 }
-                throw new Exception("Parser: Can't predict " + currentToken + " from " + currentNode.token + ", expected one of: " + expectedSymbols);
+                throw new Exception("Parser: Can't predict " + predictToken + " from " + currentNode.token + ", expected one of: " + expectedSymbols);
             }
-            List<Token> production = predict[new Tuple<Token, Token>(currentNode.token, currentToken)];
+            List<Token> production = predict[new Tuple<Token, Token>(currentNode.token, predictToken)];
             foreach (Token t in production)
             {
                 SyntaxNode child = new SyntaxNode(t);

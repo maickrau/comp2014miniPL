@@ -18,9 +18,9 @@ namespace comp2014miniplTest
             NonTerminal R = new NonTerminal("R");
             NonTerminal Q2 = new NonTerminal("Q2");
             NonTerminal R2 = new NonTerminal("R2");
-            StringLiteral a = new StringLiteral("\"a\"");
-            StringLiteral b = new StringLiteral("\"b\"");
-            StringLiteral c = new StringLiteral("\"c\"");
+            Keyword a = new Keyword("a");
+            Keyword b = new Keyword("b");
+            Keyword c = new Keyword("c");
             List<Token> prod1 = new List<Token>();
             prod1.Add(R);
             prod1.Add(a);
@@ -85,6 +85,61 @@ namespace comp2014miniplTest
             Assert.AreEqual(b, parsed.root.children[0].children[3].children[2].children[0].token);
             Assert.AreEqual(c, parsed.root.children[0].children[3].children[2].children[1].token);
             Assert.AreEqual(a, parsed.root.children[1].token);
+        }
+        [TestMethod]
+        public void parsesIdentifiersAndLiteral()
+        {
+            Parser p = new Parser();
+            Token a = new Keyword("=");
+            Token b = new Keyword(";");
+            Token s = new NonTerminal("S");
+            List<Token> production = new List<Token>();
+            production.Add(new Identifier(""));
+            production.Add(a);
+            production.Add(new IntLiteral("0"));
+            production.Add(b);
+            p.addProduction(s, production);
+            p.setStartSymbol(s);
+            p.prepareForParsing();
+            List<Token> parseThese = new List<Token>();
+            parseThese.Add(new Identifier("abc"));
+            parseThese.Add(a);
+            parseThese.Add(new IntLiteral("15"));
+            parseThese.Add(b);
+            SyntaxTree parsed = p.parse(parseThese);
+            Assert.AreEqual(new Identifier("abc"), parsed.root.children[0].token);
+            Assert.AreNotEqual(new Identifier(""), parsed.root.children[0].token);
+            Assert.AreEqual(a, parsed.root.children[1].token);
+            Assert.AreEqual(new IntLiteral("15"), parsed.root.children[2].token);
+            Assert.AreNotEqual(new IntLiteral("0"), parsed.root.children[2].token);
+            Assert.AreEqual(b, parsed.root.children[3].token);
+        }
+        [TestMethod]
+        public void parsesLiterals()
+        {
+            Parser p = new Parser();
+            Token a = new IntLiteral("0");
+            Token b = new StringLiteral("");
+            Token c = new BoolLiteral("");
+            Token s = new NonTerminal("s");
+            List<Token> production = new List<Token>();
+            production.Add(a);
+            production.Add(b);
+            production.Add(c);
+            p.addProduction(s, production);
+            p.setStartSymbol(s);
+            p.prepareForParsing();
+            List<Token> parseThese = new List<Token>();
+            parseThese.Add(new IntLiteral("-50"));
+            parseThese.Add(new StringLiteral("abc"));
+            parseThese.Add(new BoolLiteral("true"));
+            SyntaxTree parsed = p.parse(parseThese);
+            Assert.AreEqual(new IntLiteral("-50"), parsed.root.children[0].token);
+            Assert.AreNotEqual(new IntLiteral("50"), parsed.root.children[0].token);
+            Assert.AreEqual(new StringLiteral("abc"), parsed.root.children[1].token);
+            Assert.AreNotEqual(new StringLiteral("def"), parsed.root.children[1].token);
+            Assert.AreEqual(new BoolLiteral("true"), parsed.root.children[2].token);
+            Assert.AreNotEqual(new BoolLiteral("false"), parsed.root.children[2].token);
         }
     }
 }
