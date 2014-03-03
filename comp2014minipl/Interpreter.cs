@@ -3,16 +3,29 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace comp2014minipl
 {
-    class Interpreter
+    public class Interpreter
     {
         AST ast;
         Scope scope;
         Queue<String> unusedInputs;
-        public Interpreter()
+        TextReader inS;
+        TextWriter outS;
+        public Interpreter(TextReader inS = null, TextWriter outS = null)
         {
+            if (inS == null)
+            {
+                inS = Console.In;
+            }
+            if (outS == null)
+            {
+                outS = Console.Out;
+            }
+            this.inS = inS;
+            this.outS = outS;
         }
         public void run(AST ast)
         {
@@ -96,15 +109,15 @@ namespace comp2014minipl
             Expression val = eval(node.children[0]);
             if (val is IntValue)
             {
-                return intOperatorCall(node.op, new IntValue(node, 0), (IntValue)val);
+                return intOperatorCall(node, new IntValue(node, 0), (IntValue)val);
             }
             if (val is StringValue)
             {
-                return stringOperatorCall(node.op, new StringValue(node, ""), (StringValue)val);
+                return stringOperatorCall(node, new StringValue(node, ""), (StringValue)val);
             }
             if (val is BoolValue)
             {
-                return boolOperatorCall(node.op, new BoolValue(node, false), (BoolValue)val);
+                return boolOperatorCall(node, new BoolValue(node, false), (BoolValue)val);
             }
             throw new MiniPLException("Unknown type for calling operator, line " + node.line + ":" + node.position);
         }
@@ -118,97 +131,97 @@ namespace comp2014minipl
             }
             if (val1 is IntValue)
             {
-                return intOperatorCall(node.op, (IntValue)val1, (IntValue)val2);
+                return intOperatorCall(node, (IntValue)val1, (IntValue)val2);
             }
             if (val1 is StringValue)
             {
-                return stringOperatorCall(node.op, (StringValue)val1, (StringValue)val2);
+                return stringOperatorCall(node, (StringValue)val1, (StringValue)val2);
             }
             if (val1 is BoolValue)
             {
-                return boolOperatorCall(node.op, (BoolValue)val1, (BoolValue)val2);
+                return boolOperatorCall(node, (BoolValue)val1, (BoolValue)val2);
             }
             throw new MiniPLException("Unknown type for calling operator, line " + node.line + ":" + node.position);
         }
-        private Expression intOperatorCall(Operator op, IntValue val1, IntValue val2)
+        private Expression intOperatorCall(OperatorCall op, IntValue val1, IntValue val2)
         {
-            if (op.Equals(ast.grammar.o["+"]))
+            if (op.op.Equals(ast.grammar.o["+"]))
             {
-                return new IntValue(val1, val1.value + val2.value);
+                return new IntValue(op, val1.value + val2.value);
             }
-            if (op.Equals(ast.grammar.o["-"]))
+            if (op.op.Equals(ast.grammar.o["-"]))
             {
-                return new IntValue(val1, val1.value - val2.value);
+                return new IntValue(op, val1.value - val2.value);
             }
-            if (op.Equals(ast.grammar.o["*"]))
+            if (op.op.Equals(ast.grammar.o["*"]))
             {
-                return new IntValue(val1, val1.value * val2.value);
+                return new IntValue(op, val1.value * val2.value);
             }
-            if (op.Equals(ast.grammar.o["/"]))
+            if (op.op.Equals(ast.grammar.o["/"]))
             {
-                return new IntValue(val1, val1.value / val2.value);
+                return new IntValue(op, val1.value / val2.value);
             }
-            if (op.Equals(ast.grammar.o["&"]))
+            if (op.op.Equals(ast.grammar.o["&"]))
             {
-                return new IntValue(val1, val1.value & val2.value);
+                return new IntValue(op, val1.value & val2.value);
             }
-            if (op.Equals(ast.grammar.o["<"]))
+            if (op.op.Equals(ast.grammar.o["<"]))
             {
-                return new BoolValue(val1, val1.value < val2.value);
+                return new BoolValue(op, val1.value < val2.value);
             }
-            if (op.Equals(ast.grammar.o["="]))
+            if (op.op.Equals(ast.grammar.o["="]))
             {
-                return new BoolValue(val1, val1.value == val2.value);
+                return new BoolValue(op, val1.value == val2.value);
             }
-            throw new MiniPLException("Unsupported operator for int: " + op);
+            throw new MiniPLException("Unsupported operator for int: " + op.op + ", line " + op.line + ":" + op.position);
         }
-        private Expression boolOperatorCall(Operator op, BoolValue val1, BoolValue val2)
+        private Expression boolOperatorCall(OperatorCall op, BoolValue val1, BoolValue val2)
         {
-            if (op.Equals(ast.grammar.o["+"]))
+            if (op.op.Equals(ast.grammar.o["+"]))
             {
-                return new BoolValue(val1, val1.value | val2.value);
+                return new BoolValue(op, val1.value | val2.value);
             }
-            if (op.Equals(ast.grammar.o["-"]))
+            if (op.op.Equals(ast.grammar.o["-"]))
             {
-                return new BoolValue(val1, val1.value & (!val2.value));
+                return new BoolValue(op, val1.value & (!val2.value));
             }
-            if (op.Equals(ast.grammar.o["*"]))
+            if (op.op.Equals(ast.grammar.o["*"]))
             {
-                return new BoolValue(val1, val1.value | val2.value);
+                return new BoolValue(op, val1.value | val2.value);
             }
-            if (op.Equals(ast.grammar.o["&"]))
+            if (op.op.Equals(ast.grammar.o["&"]))
             {
-                return new BoolValue(val1, val1.value & val2.value);
+                return new BoolValue(op, val1.value & val2.value);
             }
-            if (op.Equals(ast.grammar.o["<"]))
+            if (op.op.Equals(ast.grammar.o["<"]))
             {
-                return new BoolValue(val1, !val1.value && val2.value);
+                return new BoolValue(op, !val1.value && val2.value);
             }
-            if (op.Equals(ast.grammar.o["="]))
+            if (op.op.Equals(ast.grammar.o["="]))
             {
-                return new BoolValue(val1, val1.value == val2.value);
+                return new BoolValue(op, val1.value == val2.value);
             }
-            if (op.Equals(new Operator("!")))
+            if (op.op.Equals(new Operator("!")))
             {
-                return new BoolValue(val2, !val2.value);
+                return new BoolValue(op, !val2.value);
             }
-            throw new MiniPLException("Unsupported operator for bool: " + op);
+            throw new MiniPLException("Unsupported operator for bool: " + op.op + ", line " + op.line + ":" + op.position);
         }
-        private Expression stringOperatorCall(Operator op, StringValue val1, StringValue val2)
+        private Expression stringOperatorCall(OperatorCall op, StringValue val1, StringValue val2)
         {
-            if (op.Equals(ast.grammar.o["+"]))
+            if (op.op.Equals(ast.grammar.o["+"]))
             {
-                return new StringValue(val1, val1.value + val2.value);
+                return new StringValue(op, val1.value + val2.value);
             }
-            if (op.Equals(ast.grammar.o["<"]))
+            if (op.op.Equals(ast.grammar.o["<"]))
             {
-                return new BoolValue(val1, val1.value.CompareTo(val2.value) < 0);
+                return new BoolValue(op, val1.value.CompareTo(val2.value) < 0);
             }
-            if (op.Equals(ast.grammar.o["="]))
+            if (op.op.Equals(ast.grammar.o["="]))
             {
-                return new BoolValue(val1, val1.value == val2.value);
+                return new BoolValue(op, val1.value == val2.value);
             }
-            throw new MiniPLException("Unsupported operator for string: " + op);
+            throw new MiniPLException("Unsupported operator for string: " + op.op + ", line " + op.line + ":" + op.position);
         }
         private void assert(Assertion node)
         {
@@ -217,7 +230,7 @@ namespace comp2014minipl
             {
                 if (!((BoolValue)value).value)
                 {
-                    System.Console.WriteLine("Assertion failed, line " + node.line + ":" + node.position);
+                    outS.WriteLine("Assertion failed, line " + node.line + ":" + node.position);
                 }
             }
         }
@@ -226,15 +239,15 @@ namespace comp2014minipl
             Expression value = eval(node.children[0]);
             if (value is IntValue)
             {
-                System.Console.Write(((IntValue)value).value);
+                outS.Write(((IntValue)value).value);
             }
             else if (value is StringValue)
             {
-                System.Console.Write(((StringValue)value).value);
+                outS.Write(((StringValue)value).value);
             }
             else if (value is BoolValue)
             {
-                System.Console.Write(((BoolValue)value).value);
+                outS.Write(((BoolValue)value).value);
             }
             else
             {
@@ -245,7 +258,7 @@ namespace comp2014minipl
         {
             if (unusedInputs.Count == 0)
             {
-                String read = System.Console.ReadLine();
+                String read = inS.ReadLine();
                 String[] words = read.Split(' ');
                 foreach (String s in words)
                 {

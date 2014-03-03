@@ -400,7 +400,7 @@ namespace comp2014minipl
                         expectedSymbols += t.Item2 + " ";
                     }
                 }
-                throw new ParserPredictException("Parser: Can't predict " + predictToken + " from " + currentNode.token + ", expected one of: " + expectedSymbols + ", line " + predictToken.line + ":" + predictToken.position);
+                throw new ParserPredictException("Parser: Improper token " + predictToken + ", expected one of: " + expectedSymbols + ", line " + predictToken.line + ":" + predictToken.position);
             }
             List<Token> production = predict[new Tuple<Token, Token>(currentNode.token, predictToken)];
             foreach (Token t in production)

@@ -310,7 +310,7 @@ namespace comp2014minipl
                 }
                 if (lengthMunched == 0)
                 {
-                    throw new ScannerException("Scanner: Couldn't munch any more input, line " + currentLine + ":" + currentPosition);
+                    throw new ScannerException("Scanner: Unexpected character, line " + currentLine + ":" + currentPosition);
                 }
                 loc += lengthMunched;
             }
