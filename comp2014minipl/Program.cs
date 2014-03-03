@@ -24,17 +24,17 @@ namespace comp2014minipl
             } //these exceptions are the user's fault
             catch (MiniPLException e)
             {
-                System.Console.WriteLine("Error parsing program: " + e);
+                System.Console.WriteLine("Error parsing program: " + e.Message);
                 return;
             }
             catch (ParserPredictException e)
             {
-                System.Console.WriteLine("Error parsing program: " + e);
+                System.Console.WriteLine("Error parsing program: " + e.Message);
                 return;
             }
             catch (ScannerException e)
             {
-                System.Console.WriteLine("Error parsing program: " + e);
+                System.Console.WriteLine("Error parsing program: " + e.Message);
                 return;
             }
             //every other exception is a bug in the program
@@ -46,7 +46,7 @@ namespace comp2014minipl
             }
             catch (MiniPLException e) //user's fault
             {
-                System.Console.WriteLine("Error interpreting program: " + e);
+                System.Console.WriteLine("Error interpreting program: " + e.Message);
                 return;
             }
             //everything else is a bug

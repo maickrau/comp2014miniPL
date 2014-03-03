@@ -37,6 +37,10 @@ namespace comp2014minipl
         {
             value = str;
         }
+        public override string ToString()
+        {
+            return "Operator:\"" + value + "\"";
+        }
         public String value;
     }
     public class Whitespace : Token
