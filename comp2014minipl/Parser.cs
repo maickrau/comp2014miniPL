@@ -355,6 +355,10 @@ namespace comp2014minipl
             }
             if (languageTerminals.Contains(currentNode.token))
             {
+                if (loc >= tokens.Count)
+                {
+                    throw new ParserPredictException("Parser: Reached end of file, expected " + currentNode.token);
+                }
                 currentNode.token = tokens[loc];
                 currentNode.line = tokens[loc].line;
                 currentNode.position = tokens[loc].position;

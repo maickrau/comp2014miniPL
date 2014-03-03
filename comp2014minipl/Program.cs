@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace comp2014minipl
 {
@@ -20,7 +21,7 @@ namespace comp2014minipl
             try
             {
                 ast = new AST(g, g.parse(program));
-            }
+            } //these exceptions are the user's fault
             catch (MiniPLException e)
             {
                 System.Console.WriteLine("Error parsing program: " + e);
@@ -36,19 +37,35 @@ namespace comp2014minipl
                 System.Console.WriteLine("Error parsing program: " + e);
                 return;
             }
+            //every other exception is a bug in the program
             System.Console.WriteLine("Interpreting");
             Interpreter inter = new Interpreter();
             try
             {
                 inter.run(ast);
             }
-            catch (MiniPLException e)
+            catch (MiniPLException e) //user's fault
             {
                 System.Console.WriteLine("Error interpreting program: " + e);
                 return;
             }
+            //everything else is a bug
             System.Console.WriteLine("");
             System.Console.WriteLine("Done interpreting");
+        }
+        static String getProgramFromFile(String fileName)
+        {
+            StringBuilder str = new StringBuilder();
+            using (StreamReader reader = new StreamReader(fileName))
+            {
+                String line = reader.ReadLine();
+                while (line != null)
+                {
+                    str.AppendLine(line);
+                    line = reader.ReadLine();
+                }
+            }
+            return str.ToString();
         }
         static String getProgramFromConsole()
         {
@@ -68,7 +85,18 @@ namespace comp2014minipl
         }
         static void Main(string[] args)
         {
-            interpret(getProgramFromConsole());
+            if (args.Count() == 0)
+            {
+                interpret(getProgramFromConsole());
+            }
+            else if (args.Count() == 1)
+            {
+                interpret(getProgramFromFile(args[0]));
+            }
+            else
+            {
+                System.Console.WriteLine("Too many arguments, expected 0 or 1");
+            }
             System.Console.WriteLine("Press enter to end");
             System.Console.ReadLine();
         }
