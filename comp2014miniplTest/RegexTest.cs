@@ -122,5 +122,12 @@ namespace comp2014miniplTest
             Assert.AreEqual(2, reg.recognize("af"));
             Assert.AreEqual(0, reg.recognize("abgbcbcdedebcf"));
         }
+        [TestMethod]
+        public void quoteWorks()
+        {
+            Regex reg = new Regex("\"a*\"");
+            String str = "\"aaaa\"";
+            Assert.AreEqual(6, reg.recognize(str));
+        }
     }
 }

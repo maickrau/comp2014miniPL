@@ -119,7 +119,7 @@ namespace comp2014miniplTest
         {
             Parser p = new Parser();
             Token a = new IntLiteral("0");
-            Token b = new StringLiteral("");
+            Token b = new StringLiteral("", 0, 0);
             Token c = new BoolLiteral("");
             Token s = new NonTerminal("s");
             List<Token> production = new List<Token>();
@@ -131,13 +131,13 @@ namespace comp2014miniplTest
             p.prepareForParsing();
             List<Token> parseThese = new List<Token>();
             parseThese.Add(new IntLiteral("-50"));
-            parseThese.Add(new StringLiteral("abc"));
+            parseThese.Add(new StringLiteral("abc", 0, 0));
             parseThese.Add(new BoolLiteral("true"));
             SyntaxTree parsed = p.parse(parseThese);
             Assert.AreEqual(new IntLiteral("-50"), parsed.root.children[0].token);
             Assert.AreNotEqual(new IntLiteral("50"), parsed.root.children[0].token);
-            Assert.AreEqual(new StringLiteral("abc"), parsed.root.children[1].token);
-            Assert.AreNotEqual(new StringLiteral("def"), parsed.root.children[1].token);
+            Assert.AreEqual(new StringLiteral("abc", 0, 0), parsed.root.children[1].token);
+            Assert.AreNotEqual(new StringLiteral("def", 0, 0), parsed.root.children[1].token);
             Assert.AreEqual(new BoolLiteral("true"), parsed.root.children[2].token);
             Assert.AreNotEqual(new BoolLiteral("false"), parsed.root.children[2].token);
         }

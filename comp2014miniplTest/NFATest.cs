@@ -171,5 +171,11 @@ namespace comp2014miniplTest
             Assert.IsFalse(test.recognizes("a"));
             Assert.IsFalse(test.recognizes("b"));
         }
+        [TestMethod]
+        public void quoteWorks()
+        {
+            NFA test = new NFA("\"a\"");
+            Assert.IsTrue(test.recognizes("\"a\""));
+        }
     }
 }

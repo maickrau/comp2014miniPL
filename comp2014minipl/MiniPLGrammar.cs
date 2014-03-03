@@ -28,7 +28,7 @@ namespace comp2014minipl
         {
             addKeywordOrNonTerminal("for");
             addKeywordOrNonTerminal("in");
-            addKeywordOrNonTerminal("\\.\\.");
+            addKeywordOrNonTerminal("..", "\\.\\.");
             addKeywordOrNonTerminal("do");
             addKeywordOrNonTerminal("end");
             addKeywordOrNonTerminal("var");
@@ -62,20 +62,21 @@ namespace comp2014minipl
             addOperator("<");
             addOperator("=");
             addOperator("&");
-            //unary must be handled separately from binary
+            //unary must be handled separately from binary because otherwise "abc"!"abc" is parseable
             Token not = new Operator("!");
             o.Add("!", not);
             scanner.addOperator("!");
 
             Token id = new Identifier("");
             Token intV = new IntLiteral("0");
-            Token strV = new StringLiteral("");
+            Token strV = new StringLiteral("", 0, 0);
             Token boolV = new BoolLiteral("");
 
             parser.addProduction(t["prog"], new List<Token> { t["stmt"], t[";"], t["stmts"] });
             parser.addProduction(t["stmts"], new List<Token> { t["stmt"], t[";"], t["stmts"] });
             parser.addProduction(t["stmts"], new List<Token> { });
             parser.addProduction(t["stmt"], new List<Token> { t["var"], id, t[":"], t["type"], t["maybeAssign"] });
+            parser.addProduction(t["stmt"], new List<Token> { t["for"], id, t["in"], t["expr"], t[".."], t["expr"], t["do"], t["stmts"], t["end"], t["for"] });
             parser.addProduction(t["stmt"], new List<Token> { id, t[":="], t["expr"] });
             parser.addProduction(t["stmt"], new List<Token> { t["read"], id });
             parser.addProduction(t["stmt"], new List<Token> { t["print"], t["expr"] });
@@ -96,6 +97,7 @@ namespace comp2014minipl
             parser.addProduction(t["maybeAssign"], new List<Token> { t[":="], t["expr"] });
             parser.addProduction(t["maybeAssign"], new List<Token> { });
             parser.addProduction(t["unary_op"], new List<Token> { not });
+            parser.addProduction(t["unary_op"], new List<Token> { o["-"] });
 
             parser.setStartSymbol(t["prog"]);
             parser.prepareForParsing();

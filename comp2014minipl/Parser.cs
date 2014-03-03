@@ -6,6 +6,14 @@ using System.Threading.Tasks;
 
 namespace comp2014minipl
 {
+    public class ParserException : Exception
+    {
+        public ParserException(String str) : base(str) { }
+    }
+    public class ParserPredictException : ParserException
+    {
+        public ParserPredictException(String str) : base(str) { }
+    }
     public class NonTerminal : Token
     {
         public override int GetHashCode()
@@ -40,6 +48,8 @@ namespace comp2014minipl
     }
     public class SyntaxNode
     {
+        public int line;
+        public int position;
         public Token token;
         public SyntaxNode parent;
         public List<SyntaxNode> children;
@@ -293,7 +303,7 @@ namespace comp2014minipl
                                 {
                                     newS += s + " ";
                                 }
-                                throw new Exception("Parser: Grammar is not LL-1, predict(" + t + "," + t2 + ") happens at least twice (" + old + " and " + newS + ")");
+                                throw new ParserException("Parser: Grammar is not LL-1, predict(" + t + "," + t2 + ") happens at least twice (" + old + " and " + newS + ")");
                             }
                             predict[key] = p;
                             if (!epsilonables.Contains(t2))
@@ -320,7 +330,7 @@ namespace comp2014minipl
                                 {
                                     newS += s + " ";
                                 }
-                                throw new Exception("Parser: Grammar is not LL-1, predict(" + t + "," + f + ") happens at least twice (" + old + " and " + newS + ")");
+                                throw new ParserException("Parser: Grammar is not LL-1, predict(" + t + "," + f + ") happens at least twice (" + old + " and " + newS + ")");
                             }
                             predict[key] = p;
                         }
@@ -332,7 +342,7 @@ namespace comp2014minipl
         {
             if (startSymbol == null)
             {
-                throw new Exception("Parser needs to have start symbol before preparing to parse");
+                throw new ParserException("Parser needs to have start symbol before preparing to parse");
             }
             calculateTerminals();
             calculatePredict();
@@ -341,11 +351,13 @@ namespace comp2014minipl
         {
             if (startSymbol == null)
             {
-                throw new Exception("Parser needs to have start symbol before parsing");
+                throw new ParserException("Parser needs to have start symbol before parsing");
             }
             if (languageTerminals.Contains(currentNode.token))
             {
                 currentNode.token = tokens[loc];
+                currentNode.line = tokens[loc].line;
+                currentNode.position = tokens[loc].position;
                 loc++;
                 return;
             }
@@ -360,19 +372,19 @@ namespace comp2014minipl
             }
             if (predictToken is Identifier)
             {
-                predictToken = new Identifier("");
+                predictToken = new Identifier(predictToken, "");
             }
             if (predictToken is IntLiteral)
             {
-                predictToken = new IntLiteral("0");
+                predictToken = new IntLiteral(predictToken, "0");
             }
             if (predictToken is StringLiteral)
             {
-                predictToken = new StringLiteral("");
+                predictToken = new StringLiteral(predictToken, "");
             }
             if (predictToken is BoolLiteral)
             {
-                predictToken = new BoolLiteral("");
+                predictToken = new BoolLiteral(predictToken, "");
             }
             if (!predict.ContainsKey(new Tuple<Token, Token>(currentNode.token, predictToken)))
             {
@@ -384,7 +396,7 @@ namespace comp2014minipl
                         expectedSymbols += t.Item2 + " ";
                     }
                 }
-                throw new Exception("Parser: Can't predict " + predictToken + " from " + currentNode.token + ", expected one of: " + expectedSymbols);
+                throw new ParserPredictException("Parser: Can't predict " + predictToken + " from " + currentNode.token + ", expected one of: " + expectedSymbols + ", line " + predictToken.line + ":" + predictToken.position);
             }
             List<Token> production = predict[new Tuple<Token, Token>(currentNode.token, predictToken)];
             foreach (Token t in production)
@@ -394,12 +406,17 @@ namespace comp2014minipl
                 currentNode.children.Add(child);
                 parse(child, tokens, ref loc);
             }
+            if (currentNode.children.Count > 0)
+            {
+                currentNode.line = currentNode.children[0].line;
+                currentNode.position = currentNode.children[0].position;
+            }
         }
         public SyntaxTree parse(List<Token> tokens)
         {
             if (startSymbol == null)
             {
-                throw new Exception("Parser: Start symbol is not set");
+                throw new ParserException("Parser: Start symbol is not set");
             }
             SyntaxNode root = new SyntaxNode(startSymbol);
             int loc = 0;

@@ -36,15 +36,15 @@ namespace comp2014minipl
         {
             if (!values.ContainsKey(var))
             {
-                throw new Exception("Scope: Variable assigned before definition");
+                throw new MiniPLException("Scope: Variable " + var.name + " assigned before definition");
             }
             if (values[var].type != val.type)
             {
-                throw new Exception("Scope: Assignment with invalid type");
+                throw new MiniPLException("Scope: Assignment to " + var.name + " with invalid type");
             }
             if (constants.Contains(var))
             {
-                throw new Exception("Scope: Assignment to a constant");
+                throw new MiniPLException("Scope: Assignment to constant " + var.name);
             }
             values[var] = val;
         }
@@ -52,32 +52,37 @@ namespace comp2014minipl
         {
             if (values.ContainsKey(var))
             {
-                throw new Exception("Scope: Variable defined twice");
+                throw new MiniPLException("Scope: Variable " + var.name + " defined twice");
             }
             if (val != null && val.type != type.type)
             {
-                throw new Exception("Scope: Variable defined with initial value of different type");
+                throw new MiniPLException("Scope: Variable " + var.name + " defined with initial value of different type");
             }
+            names[var.name] = var;
+            var.type = type.type;
             values[var] = val;
-            values[var].type = type.type;
         }
         public Variable getVar(String var)
         {
             if (!names.ContainsKey(var))
             {
-                throw new Exception("Scope: Can't find variable");
+                throw new MiniPLException("Scope: Can't find variable " + var);
             }
             return names[var];
         }
         public Expression getValue(String var)
         {
-            return get(new Variable(var));
+            if (!names.ContainsKey(var))
+            {
+                throw new MiniPLException("Scope: Can't find variable " + var);
+            }
+            return get(names[var]);
         }
         public Expression get(Variable var)
         {
             if (!values.ContainsKey(var))
             {
-                throw new Exception("Scope: Variable read before definition");
+                throw new MiniPLException("Scope: Variable " + var.name + " read before definition");
             }
             return values[var];
         }

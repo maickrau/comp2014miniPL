@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace comp2014minipl
 {
+    public class RegexException : Exception
+    {
+        public RegexException(String str) : base(str) { }
+    }
     public class Regex
     {
         public NFA nfa;
@@ -65,7 +69,7 @@ namespace comp2014minipl
             {
                 if (loc >= str.Length)
                 {
-                    throw new Exception("Regex has a ( without a matching )");
+                    throw new RegexException("Regex has a ( without a matching )");
                 }
                 if (str[loc] == '|')
                 {
@@ -157,7 +161,7 @@ namespace comp2014minipl
             {
                 if (loc >= str.Length)
                 {
-                    throw new Exception("Regex has a [ without a matching ]");
+                    throw new RegexException("Regex has a [ without a matching ]");
                 }
                 NFA nextNFA;
                 if (str[loc] == '\\')
@@ -206,7 +210,7 @@ namespace comp2014minipl
             loc++;
             if (loc >= str.Length)
             {
-                throw new Exception("Regex ends with a special character marker");
+                throw new RegexException("Regex ends with a special character marker");
             }
             NFA ret;
             switch(str[loc])
@@ -260,7 +264,7 @@ namespace comp2014minipl
                     ret = new NFA("-");
                     break;
                 default:
-                    throw new Exception("Unknown escape character in regex");
+                    throw new RegexException("Unknown escape character in regex");
             }
             loc++;
             //loc is first character after special

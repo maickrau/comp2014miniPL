@@ -6,8 +6,18 @@ using System.Threading.Tasks;
 
 namespace comp2014minipl
 {
+    public class ScannerException : Exception
+    {
+        public ScannerException(String str) : base(str) { }
+    }
+    public class ScannerMunchException : ScannerException
+    {
+        public ScannerMunchException(String str) : base(str) { }
+    }
     public abstract class Token
     {
+        public int line;
+        public int position;
     }
     public class Operator : Token
     {
@@ -85,6 +95,11 @@ namespace comp2014minipl
             }
             return value == ((IntLiteral)obj).value;
         }
+        public IntLiteral(Token from, String str) : this(str)
+        {
+            line = from.line;
+            position = from.position;
+        }
         public IntLiteral(String str)
         {
             value = Int32.Parse(str);
@@ -109,8 +124,13 @@ namespace comp2014minipl
             }
             return value == ((StringLiteral)obj).value;
         }
-        public StringLiteral(String str)
+        public StringLiteral(Token from, String str) : this(str, from.line, from.position)
         {
+        }
+        public StringLiteral(String str, int line, int position)
+        {
+            this.line = line;
+            this.position = position;
             StringBuilder build = new StringBuilder();
             for (int i = 1; i < str.Length-1; i++)
             {
@@ -134,8 +154,9 @@ namespace comp2014minipl
                             build.Append('\t');
                             break;
                         default:
-                            throw new Exception("Unknown string escape character");
+                            throw new ScannerException("Unknown string escape character \\" + str[i+1] + ", line " + line + ":" + position);
                     }
+                    i++;
                 }
                 else
                 {
@@ -159,6 +180,11 @@ namespace comp2014minipl
                 return false;
             }
             return value == ((BoolLiteral)obj).value;
+        }
+        public BoolLiteral(Token from, String str) : this(str)
+        {
+            line = from.line;
+            position = from.position;
         }
         public BoolLiteral(String str)
         {
@@ -187,6 +213,11 @@ namespace comp2014minipl
             }
             return value == ((Identifier)obj).value;
         }
+        public Identifier(Token from, String str) : this(str)
+        {
+            line = from.line;
+            position = from.position;
+        }
         public Identifier(String str)
         {
             value = str;
@@ -201,7 +232,7 @@ namespace comp2014minipl
     {
         List<Tuple<Type, Regex>> scannables;
         Regex identifier;
-        public Scanner(String numberRegex = "(0|-?[1-9][0-9]*)", String stringRegex = "\"([^\\\\]|\\[^\"])*\"", String whitespaceRegex = "[ \n\t\r]*", String identifierRegex = "[a-zA-Z_][0-9a-zA-Z_]*")
+        public Scanner(String numberRegex = "(0|[1-9][0-9]*)", String stringRegex = "\"([^\"]|\\.)*\"", String whitespaceRegex = "[ \n\t\r]*", String identifierRegex = "[a-zA-Z_][0-9a-zA-Z_]*")
         {
             //just in case the syntax of a number changes tomorrow
             identifier = new Regex(identifierRegex);
@@ -228,6 +259,8 @@ namespace comp2014minipl
         public List<Token> parse(String text, bool outputWhitespace = false)
         {
             List<Token> ret = new List<Token>();
+            int currentLine = 0;
+            int currentPosition = 0;
             int loc = 0;
             while (loc < text.Length)
             {
@@ -242,22 +275,42 @@ namespace comp2014minipl
                     }
                 }
                 int lengthMunched;
+                Token newToken = null;
                 if (longestIdentifier > longestMunch.Item2)
                 {
                     lengthMunched = longestIdentifier;
-                    ret.Add(new Identifier(text.Substring(loc, longestIdentifier)));
+                    newToken = new Identifier(text.Substring(loc, longestIdentifier));
                 }
                 else
                 {
                     lengthMunched = longestMunch.Item2;
-                    if (longestMunch.Item1 != typeof(Whitespace) || outputWhitespace)
+                    if (longestMunch.Item1 == typeof(StringLiteral))
                     {
-                        ret.Add((Token)System.Activator.CreateInstance(longestMunch.Item1, text.Substring(loc, longestMunch.Item2)));
+                        newToken = new StringLiteral(text.Substring(loc, longestMunch.Item2), currentLine, currentPosition);
+                    }
+                    else if (longestMunch.Item1 != typeof(Whitespace) || outputWhitespace)
+                    {
+                        newToken = (Token)System.Activator.CreateInstance(longestMunch.Item1, text.Substring(loc, longestMunch.Item2));
+                    }
+                }
+                if (newToken != null)
+                {
+                    newToken.line = currentLine;
+                    newToken.position = currentPosition;
+                    ret.Add(newToken);
+                }
+                for (int i = loc; i < loc+lengthMunched; i++)
+                {
+                    currentPosition++;
+                    if (text[i] == '\n')
+                    {
+                        currentLine++;
+                        currentPosition = 0;
                     }
                 }
                 if (lengthMunched == 0)
                 {
-                    throw new Exception("Scanner: Couldn't munch any more input at location " + loc);
+                    throw new ScannerException("Scanner: Couldn't munch any more input, line " + currentLine + ":" + currentPosition);
                 }
                 loc += lengthMunched;
             }

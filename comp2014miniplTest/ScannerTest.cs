@@ -32,8 +32,8 @@ namespace comp2014miniplTest
         public void scansLiterals()
         {
             Scanner s = new Scanner();
-            List<Token> result = s.parse("\"abc\" 1 true false -50 0", true);
-            Assert.AreEqual(new StringLiteral("\"abc\""), result[0]);
+            List<Token> result = s.parse("\"abc\" 1 true false 50 0", true);
+            Assert.AreEqual(new StringLiteral("\"abc\"", 0, 0), result[0]);
             Assert.AreEqual("abc", ((StringLiteral)result[0]).value);
             Assert.AreEqual(new Whitespace(""), result[1]);
             Assert.AreEqual(new IntLiteral("1"), result[2]);
@@ -45,8 +45,8 @@ namespace comp2014miniplTest
             Assert.AreEqual(new BoolLiteral("false"), result[6]);
             Assert.AreEqual(false, ((BoolLiteral)result[6]).value);
             Assert.AreEqual(new Whitespace(""), result[7]);
-            Assert.AreEqual(new IntLiteral("-50"), result[8]);
-            Assert.AreEqual(-50, ((IntLiteral)result[8]).value);
+            Assert.AreEqual(new IntLiteral("50"), result[8]);
+            Assert.AreEqual(50, ((IntLiteral)result[8]).value);
             Assert.AreEqual(new Whitespace(""), result[9]);
             Assert.AreEqual(new IntLiteral("0"), result[10]);
             Assert.AreEqual(0, ((IntLiteral)result[10]).value);
@@ -82,6 +82,16 @@ namespace comp2014miniplTest
             Assert.AreEqual(new Operator("*"), result[4]);
             Assert.AreEqual(new IntLiteral("3"), result[5]);
             Assert.AreEqual(new Keyword(")"), result[6]);
+        }
+        [TestMethod]
+        public void scansExampleLine()
+        {
+            Scanner s = new Scanner();
+            String str = @"print "" : Hello, World!
+""";
+            List<Token> result = s.parse(str);
+            Assert.AreEqual(new Identifier("print"), result[0]);
+            Assert.AreEqual(new StringLiteral("\" : Hello, World!\r\n\"", 0, 0), result[1]);
         }
     }
 }
