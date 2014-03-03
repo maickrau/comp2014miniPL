@@ -260,7 +260,19 @@ namespace comp2014minipl
             }
             else if (var.type == typeof(int))
             {
-                int val = Convert.ToInt32(word);
+                int val = 0;
+                try
+                {
+                    val = Convert.ToInt32(word);
+                }
+                catch (FormatException e)
+                {
+                    throw new MiniPLException(word + " is not an integer, line " + node.line + ":" + node.position);
+                }
+                catch (OverflowException e)
+                {
+                    throw new MiniPLException(word + " is too big for an integer, line " + node.line + ":" + node.position);
+                }
                 scope.set(var, new IntValue(node, val));
             }
             else if (var.type == typeof(bool))
