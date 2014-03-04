@@ -233,6 +233,7 @@ namespace comp2014minipl
                 ret.children.Add(parseExpression(node.children[3]));
                 ret.children.Add(parseExpression(node.children[5]));
                 ret.children.Add(parse(node.children[7]));
+                ret.children.Add(parse(node.children[9]));
                 return ret;
             }
             if (node.children[0].token.Equals(grammar.t["read"]))

@@ -76,7 +76,7 @@ namespace comp2014minipl
             parser.addProduction(t["stmts"], new List<Token> { t["stmt"], t[";"], t["stmts"] });
             parser.addProduction(t["stmts"], new List<Token> { });
             parser.addProduction(t["stmt"], new List<Token> { t["var"], id, t[":"], t["type"], t["maybeAssign"] });
-            parser.addProduction(t["stmt"], new List<Token> { t["for"], id, t["in"], t["expr"], t[".."], t["expr"], t["do"], t["stmts"], t["end"], t["for"] });
+            parser.addProduction(t["stmt"], new List<Token> { t["for"], id, t["in"], t["expr"], t[".."], t["expr"], t["do"], t["stmt"], t[";"], t["stmts"], t["end"], t["for"] });
             parser.addProduction(t["stmt"], new List<Token> { id, t[":="], t["expr"] });
             parser.addProduction(t["stmt"], new List<Token> { t["read"], id });
             parser.addProduction(t["stmt"], new List<Token> { t["print"], t["expr"] });
