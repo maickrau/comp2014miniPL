@@ -58,6 +58,7 @@
     <Compile Include="MiniPLGrammarTest.cs" />
     <Compile Include="ASTTest.cs" />
     <Compile Include="InterpreterTest.cs" />
+    <Compile Include="DecommenterTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\comp2014minipl\comp2014minipl.csproj">

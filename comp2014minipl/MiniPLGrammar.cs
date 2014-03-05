@@ -8,12 +8,14 @@ namespace comp2014minipl
 {
     public class MiniPLGrammar
     {
-        public Parser parser;
-        public Scanner scanner;
+        private Decommenter decommenter;
+        private Parser parser;
+        private Scanner scanner;
         public Dictionary<String, Token> t;
         public Dictionary<String, Token> o;
         public MiniPLGrammar()
         {
+            decommenter = new Decommenter();
             parser = new Parser();
             scanner = new Scanner();
             t = new Dictionary<String, Token>();
@@ -22,7 +24,7 @@ namespace comp2014minipl
         }
         public SyntaxTree parse(String str)
         {
-            return parser.parse(scanner.parse(str));
+            return parser.parse(scanner.parse(decommenter.decomment(str)));
         }
         private void initializeGrammar()
         {

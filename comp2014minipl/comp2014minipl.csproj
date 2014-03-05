@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AST.cs" />
+    <Compile Include="Decommenter.cs" />
     <Compile Include="Interpreter.cs" />
     <Compile Include="MiniPLGrammar.cs" />
     <Compile Include="Parser.cs" />
