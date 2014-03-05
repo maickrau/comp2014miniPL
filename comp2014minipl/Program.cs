@@ -22,6 +22,11 @@ namespace comp2014minipl
             {
                 ast = new AST(g, g.parse(program));
             } //these exceptions are the user's fault
+            catch (SemanticError e)
+            {
+                System.Console.WriteLine("Error parsing program: " + e.Message);
+                return;
+            }
             catch (MiniPLException e)
             {
                 System.Console.WriteLine("Error parsing program: " + e.Message);

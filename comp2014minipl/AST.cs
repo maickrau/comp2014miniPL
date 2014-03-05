@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace comp2014minipl
 {
+    public class SemanticError : Exception
+    {
+        public SemanticError(String str, SyntaxNode from) : base(str + ", line " + from.line + ":" + from.position) { }
+    }
     public class ASTNode
     {
         public int line;
@@ -64,7 +68,7 @@ namespace comp2014minipl
     {
         public Variable(SyntaxNode from) : base(from) { }
         public Variable(ASTNode from) : base(from) { }
-        public Variable(ASTNode from, bool value) : base(from)
+        public Variable(ASTNode from, String name) : base(from)
         {
             this.name = name;
         }
@@ -168,8 +172,12 @@ namespace comp2014minipl
     {
         public ASTNode root;
         public MiniPLGrammar grammar;
+        public Dictionary<String, Variable> vars;
+        private HashSet<String> currentConstants;
         public AST(MiniPLGrammar grammar, SyntaxTree tree)
         {
+            currentConstants = new HashSet<String>();
+            vars = new Dictionary<String, Variable>();
             this.grammar = grammar;
             root = parse(tree.root);
         }
@@ -202,16 +210,24 @@ namespace comp2014minipl
         {
             if (!node.token.Equals(grammar.t["stmt"]))
             {
-                throw new MiniPLException("Trying to parse a non-statement " + node.token + " as a statement, line " + node.line + ":" + node.position);
+                throw new Exception("Trying to parse a non-statement " + node.token + " as a statement, line " + node.line + ":" + node.position);
             }
             if (node.children[0].token.Equals(grammar.t["var"]))
             {
                 Define ret = new Define(node);
-                ret.children.Add(parseVariable(node.children[1]));
-                ret.children.Add(parseType(node.children[3]));
+                Variable newVariable = parseVariable(node.children[1], true);
+                TypeName type = parseType(node.children[3]);
+                ret.children.Add(newVariable);
+                ret.children.Add(type);
+                newVariable.type = type.type;
                 if (node.children[4].children.Count > 0)
                 {
-                    ret.children.Add(parseExpression(node.children[4].children[1]));
+                    Expression initialValue = parseExpression(node.children[4].children[1]);
+                    if (initialValue.type != newVariable.type)
+                    {
+                        throw new SemanticError("Variable " + newVariable.name + " defined with initial value of different type", node);
+                    }
+                    ret.children.Add(initialValue);
                 }
                 else
                 {
@@ -222,24 +238,51 @@ namespace comp2014minipl
             if (node.children[0].token is Identifier)
             {
                 Assign ret = new Assign(node);
-                ret.children.Add(parseVariable(node.children[0]));
-                ret.children.Add(parseExpression(node.children[2]));
+                Variable var = parseVariable(node.children[0], false);
+                if (currentConstants.Contains(var.name))
+                {
+                    throw new SemanticError("Assignment to loop variable " + var.name, node);
+                }
+                Expression value = parseExpression(node.children[2]);
+                if (var.type != value.type)
+                {
+                    throw new SemanticError("Variable " + var.name + " assigned a value of different type", node);
+                }
+                ret.children.Add(var);
+                ret.children.Add(value);
                 return ret;
             }
             if (node.children[0].token.Equals(grammar.t["for"]))
             {
                 For ret = new For(node);
-                ret.children.Add(parseVariable(node.children[1]));
-                ret.children.Add(parseExpression(node.children[3]));
-                ret.children.Add(parseExpression(node.children[5]));
+                Variable var = parseVariable(node.children[1], false);
+                Expression from = parseExpression(node.children[3]);
+                Expression to = parseExpression(node.children[5]);
+                if (var.type != typeof(int))
+                {
+                    throw new SemanticError("Only ints may be iterated on", node);
+                }
+                if (from.type != typeof(int))
+                {
+                    throw new SemanticError("Iteration start needs to be an int", node);
+                }
+                if (to.type != typeof(int))
+                {
+                    throw new SemanticError("Iteration end needs to be an int", node);
+                }
+                ret.children.Add(var);
+                ret.children.Add(from);
+                ret.children.Add(to);
+                currentConstants.Add(var.name);
                 ret.children.Add(parse(node.children[7]));
                 ret.children.Add(parse(node.children[9]));
+                currentConstants.Remove(var.name);
                 return ret;
             }
             if (node.children[0].token.Equals(grammar.t["read"]))
             {
                 Read ret = new Read(node);
-                ret.children.Add(parseVariable(node.children[1]));
+                ret.children.Add(parseVariable(node.children[1], false));
                 return ret;
             }
             if (node.children[0].token.Equals(grammar.t["print"]))
@@ -254,7 +297,7 @@ namespace comp2014minipl
                 ret.children.Add(parseExpression(node.children[2]));
                 return ret;
             }
-            throw new MiniPLException("Un-AST-ed syntax node, token " + node.token + ", first child " + node.children[0].token + ", line " + node.line + ":" + node.position);
+            throw new Exception("Un-AST-ed syntax node, token " + node.token + ", first child " + node.children[0].token + ", line " + node.line + ":" + node.position);
         }
         private TypeName parseType(SyntaxNode node)
         {
@@ -273,13 +316,71 @@ namespace comp2014minipl
             }
             else
             {
-                throw new MiniPLException("Unknown type name: " + node.children[0].token + ", line " + node.line + ":" + node.position);
+                throw new Exception("Unknown type name: " + node.children[0].token + ", line " + node.line + ":" + node.position);
             }
             return ret;
         }
-        private Variable parseVariable(SyntaxNode node)
+        private Variable parseVariable(SyntaxNode node, bool shouldCreate)
         {
-            return new Variable(node, ((Identifier)node.token).value);
+            String varName = ((Identifier)node.token).value;
+            if (vars.ContainsKey(varName))
+            {
+                if (shouldCreate)
+                {
+                    throw new SemanticError("Variable " + varName + " defined twice", node);
+                }
+                return vars[varName];
+            }
+            if (!shouldCreate)
+            {
+                throw new SemanticError("Variable " + varName + " referenced before definition", node);
+            }
+            Variable newVar = new Variable(node, varName);
+            vars[varName] = newVar;
+            return newVar;
+        }
+        private bool unaryOperatorMakesSense(Operator op, Type type)
+        {
+            if (op == grammar.t["!"] && type == typeof(bool))
+            {
+                return true;
+            }
+            if (op == grammar.o["-"] && type == typeof(int))
+            {
+                return true;
+            }
+            return false;
+        }
+        private bool binaryOperatorMakesSense(Operator op, Type lhs, Type rhs)
+        {
+            if (lhs != rhs)
+            {
+                return false;
+            }
+            switch(op.value)
+            {
+                case "-":
+                    return lhs == typeof(int) || lhs == typeof(bool);
+                case "+":
+                    return lhs == typeof(int) || lhs == typeof(String) || lhs == typeof(bool);
+                case "*":
+                    return lhs == typeof(int) || lhs == typeof(bool);
+                case "/":
+                    return lhs == typeof(int);
+                case "&":
+                    return lhs == typeof(int) || lhs == typeof(bool);
+                case "<":
+                    return true;
+                case "=":
+                    return true;
+                default:
+                    throw new Exception("No case for binary operator makes-sense check " + op);
+            }
+        }
+        private Type binaryOperatorResult(Operator op, Type lhs, Type rhs)
+        {
+            //this could be used eg. so "abc"+1 => string, but it's not.
+            return lhs;
         }
         private Expression parseExpression(SyntaxNode node)
         {
@@ -292,9 +393,14 @@ namespace comp2014minipl
                 if (node.children[0].token.Equals(grammar.t["unary_op"]))
                 {
                     OperatorCall ret = new OperatorCall(node);
+                    Expression operand = parseExpression(node.children[1]);
                     ret.op = parseOperator(node.children[0]);
-                    ret.children.Add(parseExpression(node.children[1]));
-                    ret.type = ((Expression)ret.children[0]).type;
+                    if (!unaryOperatorMakesSense(ret.op, operand.type))
+                    {
+                        throw new SemanticError("Unary operator " + ret.op.ToString() + " can't be applied to " + operand.type, node);
+                    }
+                    ret.children.Add(operand);
+                    ret.type = operand.type;
                     return ret;
                 }
             }
@@ -307,8 +413,15 @@ namespace comp2014minipl
             {
                 OperatorCall ret = new OperatorCall(node);
                 ret.op = parseOperator(node.children[1].children[0]);
-                ret.children.Add(parseExpression(node.children[0]));
-                ret.children.Add(parseExpression(node.children[1].children[1]));
+                Expression lhs = parseExpression(node.children[0]);
+                Expression rhs = parseExpression(node.children[1].children[1]);
+                if (!binaryOperatorMakesSense(ret.op, lhs.type, rhs.type))
+                {
+                    throw new SemanticError("Binary operator " + ret.op.ToString() + " can't be applied to " + lhs.type + " and " + rhs.type, node);
+                }
+                ret.children.Add(lhs);
+                ret.children.Add(rhs);
+                ret.type = binaryOperatorResult(ret.op, lhs.type, rhs.type);
                 return ret;
             }
             return parseExpression(node.children[0]);
@@ -337,9 +450,9 @@ namespace comp2014minipl
             }
             if (node.children[0].token is Identifier)
             {
-                return new Variable(node, ((Identifier)node.children[0].token).value);
+                return parseVariable(node.children[0], false);
             }
-            throw new MiniPLException("oops! some operand type is missing, line " + node.line + ":" + node.position);
+            throw new Exception("oops! some operand type is missing, line " + node.line + ":" + node.position);
         }
     }
 }
