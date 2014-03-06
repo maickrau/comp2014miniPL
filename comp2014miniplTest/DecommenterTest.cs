@@ -56,5 +56,19 @@ namespace comp2014miniplTest
             String s = "ascnjsdkla snd\n\nklaa\nnjskasda\t\t\nafsjnsda   ";
             Assert.AreEqual(s, d.decomment(s));
         }
+        [TestMethod]
+        public void doesntCommentInsideStrings()
+        {
+            Decommenter d = new Decommenter();
+            String s = "abc\"/*abc*/\"def";
+            Assert.AreEqual("abc\"/*abc*/\"def", d.decomment(s));
+        }
+        [TestMethod]
+        public void doesntCommentInsideStrings2()
+        {
+            Decommenter d = new Decommenter();
+            String s = "abc\"\\\"/*abc*/\"def";
+            Assert.AreEqual("abc\"\\\"/*abc*/\"def", d.decomment(s));
+        }
     }
 }
