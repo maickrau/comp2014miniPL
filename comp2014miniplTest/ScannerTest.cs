@@ -93,5 +93,21 @@ namespace comp2014miniplTest
             Assert.AreEqual(new Identifier("print"), result[0]);
             Assert.AreEqual(new StringLiteral("\" : Hello, World!\r\n\"", 0, 0), result[1]);
         }
+        [TestMethod]
+        public void doesntStopAtFirstError()
+        {
+            Scanner s = new Scanner();
+            String str = "ab $ $ ";
+            try
+            {
+                List<Token> result = s.parse(str);
+                Assert.Fail("Didn't throw an exception");
+            }
+            catch (ScannerException e)
+            {
+                Assert.IsTrue(e.Message.Contains("0:3 : Untokenizable input"));
+                Assert.IsTrue(e.Message.Contains("0:5 : Untokenizable input"));
+            }
+        }
     }
 }

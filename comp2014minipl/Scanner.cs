@@ -9,10 +9,17 @@ namespace comp2014minipl
     public class ScannerException : Exception
     {
         public ScannerException(String str) : base(str) { }
-    }
-    public class ScannerMunchException : ScannerException
-    {
-        public ScannerMunchException(String str) : base(str) { }
+        public ScannerException(List<String> errors) : base(parseErrors(errors)) { }
+
+        private static String parseErrors(List<String> errors)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (String s in errors)
+            {
+                sb.AppendLine(s);
+            }
+            return sb.ToString();
+        }
     }
     public abstract class Token
     {
@@ -234,6 +241,7 @@ namespace comp2014minipl
     }
     public class Scanner
     {
+        List<String> errors;
         List<Tuple<Type, Regex>> scannables;
         Regex identifier;
         public Scanner(String numberRegex = "(0|[1-9][0-9]*)", String stringRegex = "\"([^\"]|\\.)*\"", String whitespaceRegex = "[ \n\t\r]*", String identifierRegex = "[a-zA-Z_][0-9a-zA-Z_]*")
@@ -261,6 +269,20 @@ namespace comp2014minipl
             scannables.Add(new Tuple<Type, Regex>(typeof(Operator), new Regex(op)));
         }
         public List<Token> parse(String text, bool outputWhitespace = false)
+        {
+            errors = new List<String>();
+            List<Token> ret = parseInternal(text, outputWhitespace);
+            if (errors.Count > 0)
+            {
+                throw new ScannerException(errors);
+            }
+            return ret;
+        }
+        private void addError(int line, int position)
+        {
+            errors.Add("" + line + ":" + position + " : Untokenizable input");
+        }
+        private List<Token> parseInternal(String text, bool outputWhitespace)
         {
             List<Token> ret = new List<Token>();
             int currentLine = 0;
@@ -303,7 +325,12 @@ namespace comp2014minipl
                     newToken.position = currentPosition;
                     ret.Add(newToken);
                 }
-                for (int i = loc; i < loc+lengthMunched; i++)
+                if (lengthMunched == 0)
+                {
+                    addError(currentLine, currentPosition);
+                    lengthMunched = 1;
+                }
+                for (int i = loc; i < loc + lengthMunched; i++)
                 {
                     currentPosition++;
                     if (text[i] == '\n')
@@ -311,10 +338,6 @@ namespace comp2014minipl
                         currentLine++;
                         currentPosition = 0;
                     }
-                }
-                if (lengthMunched == 0)
-                {
-                    throw new ScannerException("Scanner: Unexpected character, line " + currentLine + ":" + currentPosition);
                 }
                 loc += lengthMunched;
             }
