@@ -33,7 +33,7 @@ namespace comp2014miniplTest
         {
             Scanner s = new Scanner();
             List<Token> result = s.parse("\"abc\" 1 true false 50 0", true);
-            Assert.AreEqual(new StringLiteral("\"abc\"", 0, 0), result[0]);
+            Assert.AreEqual(new StringLiteral("\"abc\""), result[0]);
             Assert.AreEqual("abc", ((StringLiteral)result[0]).value);
             Assert.AreEqual(new Whitespace(""), result[1]);
             Assert.AreEqual(new IntLiteral("1"), result[2]);
@@ -91,7 +91,7 @@ namespace comp2014miniplTest
 """;
             List<Token> result = s.parse(str);
             Assert.AreEqual(new Identifier("print"), result[0]);
-            Assert.AreEqual(new StringLiteral("\" : Hello, World!\r\n\"", 0, 0), result[1]);
+            Assert.AreEqual(new StringLiteral("\" : Hello, World!\r\n\""), result[1]);
         }
         [TestMethod]
         public void doesntStopAtFirstError()
@@ -109,5 +109,34 @@ namespace comp2014miniplTest
                 Assert.IsTrue(e.Message.Contains("0:5 Scanner error:"));
             }
         }
-    }
+        [TestMethod]
+        public void errorsOnWrongStringEscape()
+        {
+            Scanner s = new Scanner();
+            String str = "\"abc\\m\"";
+            try
+            {
+                List<Token> result = s.parse(str);
+                Assert.Fail("Didn't throw an exception");
+            }
+            catch (ScannerException e)
+            {
+                Assert.IsTrue(e.Message.Contains("0:0 Scanner error:"));
+            }
+        }
+        [TestMethod]
+        public void errorsOnTooBigInts()
+        {
+            Scanner s = new Scanner();
+            String str = "4423234643656764557246453256436234574653264365432564565475675263452345574724";
+            try
+            {
+                List<Token> result = s.parse(str);
+                Assert.Fail("Didn't throw an exception");
+            }
+            catch (ScannerException e)
+            {
+                Assert.IsTrue(e.Message.Contains("0:0 Scanner error:"));
+            }
+        }    }
 }

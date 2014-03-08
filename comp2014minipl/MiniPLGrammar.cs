@@ -71,7 +71,7 @@ namespace comp2014minipl
 
             Token id = new Identifier("");
             Token intV = new IntLiteral("0");
-            Token strV = new StringLiteral("", 0, 0);
+            Token strV = new StringLiteral("");
             Token boolV = new BoolLiteral("");
 
             parser.addProduction(t["prog"], new List<Token> { t["stmt"], t[";"], t["stmts"] });

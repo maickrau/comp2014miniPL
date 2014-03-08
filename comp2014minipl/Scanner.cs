@@ -23,6 +23,39 @@ namespace comp2014minipl
     }
     public abstract class Token
     {
+        public static Token create(Type type, String str)
+        {
+            //this is ugly but System.Activator.CreateInstance doesn't play nicely with constructor thrown exceptions
+            if (type == typeof(Operator))
+            {
+                return new Operator(str);
+            }
+            if (type == typeof(Whitespace))
+            {
+                return new Whitespace(str);
+            }
+            if (type == typeof(Keyword))
+            {
+                return new Keyword(str);
+            }
+            if (type == typeof(IntLiteral))
+            {
+                return new IntLiteral(str);
+            }
+            if (type == typeof(StringLiteral))
+            {
+                return new StringLiteral(str);
+            }
+            if (type == typeof(BoolLiteral))
+            {
+                return new BoolLiteral(str);
+            }
+            if (type == typeof(Identifier))
+            {
+                return new Identifier(str);
+            }
+            throw new Exception("Unknown type for token creation: " + type);
+        }
         public bool compatible(Token second)
         {
             return this.GetType() == second.GetType();
@@ -125,7 +158,15 @@ namespace comp2014minipl
         }
         public IntLiteral(String str)
         {
-            value = Int32.Parse(str);
+            try
+            {
+                value = Int32.Parse(str);
+            }
+            catch (OverflowException e)
+            {
+                throw new ScannerException(str + " doesn't fit inside an int");
+            }
+            //don't catch FormatException, if it happened then something has gone very wrong
         }
         public int value;
     }
@@ -147,19 +188,19 @@ namespace comp2014minipl
             }
             return value == ((StringLiteral)obj).value;
         }
-        public StringLiteral(Token from, String str) : this(str, from.line, from.position)
+        public StringLiteral(Token from, String str) : this(str)
         {
+            this.line = from.line;
+            this.position = from.position;
         }
-        public StringLiteral(String str, int line, int position)
+        public StringLiteral(String str)
         {
-            this.line = line;
-            this.position = position;
             StringBuilder build = new StringBuilder();
-            for (int i = 1; i < str.Length-1; i++)
+            for (int i = 1; i < str.Length - 1; i++)
             {
                 if (str[i] == '\\')
                 {
-                    switch(str[i+1])
+                    switch (str[i + 1])
                     {
                         case 'n':
                             build.Append('\n');
@@ -177,7 +218,7 @@ namespace comp2014minipl
                             build.Append('\t');
                             break;
                         default:
-                            throw new ScannerException("Unknown string escape character \\" + str[i+1] + ", line " + line + ":" + position);
+                            throw new ScannerException("Unknown string escape character \\" + str[i + 1]);
                     }
                     i++;
                 }
@@ -294,6 +335,10 @@ namespace comp2014minipl
         {
             errors.Add("" + line + ":" + position + " Scanner error: untokenizable input");
         }
+        private void addError(int line, int position, String message)
+        {
+            errors.Add("" + line + ":" + position + " Scanner error: " + message);
+        }
         private List<Token> parseInternal(String text, bool outputWhitespace)
         {
             List<Token> ret = new List<Token>();
@@ -322,13 +367,17 @@ namespace comp2014minipl
                 else
                 {
                     lengthMunched = longestMunch.Item2;
-                    if (longestMunch.Item1 == typeof(StringLiteral))
+                    try
                     {
-                        newToken = new StringLiteral(text.Substring(loc, longestMunch.Item2), currentLine, currentPosition);
+                        if (longestMunch.Item1 != typeof(Whitespace) || outputWhitespace)
+                        {
+                            newToken = Token.create(longestMunch.Item1, text.Substring(loc, longestMunch.Item2));
+                        }
                     }
-                    else if (longestMunch.Item1 != typeof(Whitespace) || outputWhitespace)
+                    catch (ScannerException e)
                     {
-                        newToken = (Token)System.Activator.CreateInstance(longestMunch.Item1, text.Substring(loc, longestMunch.Item2));
+                        //string/int construction failed
+                        addError(currentLine, currentPosition, e.Message);
                     }
                 }
                 if (newToken != null)
