@@ -24,22 +24,22 @@ namespace comp2014minipl
             } //these exceptions are the user's fault
             catch (SemanticError e)
             {
-                System.Console.WriteLine("Error parsing program: " + e.Message);
+                System.Console.WriteLine("Error parsing program\n" + e.Message);
                 return;
             }
             catch (MiniPLException e)
             {
-                System.Console.WriteLine("Error parsing program: " + e.Message);
+                System.Console.WriteLine("Error parsing program\n" + e.Message);
                 return;
             }
             catch (ParseError e)
             {
-                System.Console.WriteLine("Error parsing program: " + e.Message);
+                System.Console.WriteLine("Error parsing program\n" + e.Message);
                 return;
             }
             catch (ScannerException e)
             {
-                System.Console.WriteLine("Error parsing program: " + e.Message);
+                System.Console.WriteLine("Error parsing program\n" + e.Message);
                 return;
             }
             //every other exception is a bug in the program

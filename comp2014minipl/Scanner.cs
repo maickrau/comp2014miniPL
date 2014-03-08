@@ -292,7 +292,7 @@ namespace comp2014minipl
         }
         private void addError(int line, int position)
         {
-            errors.Add("" + line + ":" + position + " : Untokenizable input");
+            errors.Add("" + line + ":" + position + " Scanner error: untokenizable input");
         }
         private List<Token> parseInternal(String text, bool outputWhitespace)
         {

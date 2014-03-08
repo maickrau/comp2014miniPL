@@ -35,8 +35,8 @@ namespace comp2014miniplTest
             }
             catch (SemanticError e)
             {
-                Assert.IsTrue(e.Message.Contains("0:9 : Semantic error :"));
-                Assert.IsTrue(e.Message.Contains("0:14 : Semantic error :"));
+                Assert.IsTrue(e.Message.Contains("0:9 Semantic error: "));
+                Assert.IsTrue(e.Message.Contains("0:14 Semantic error: "));
             }
         }
     }

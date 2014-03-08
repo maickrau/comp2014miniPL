@@ -199,7 +199,7 @@ namespace comp2014minipl
         }
         private void addError(SyntaxNode node, String message)
         {
-            errors.Add("" + node.line + ":" + node.position + " : Semantic error :" + message);
+            errors.Add("" + node.line + ":" + node.position + " Semantic error: " + message);
         }
         private ASTNode parse(SyntaxNode node)
         {

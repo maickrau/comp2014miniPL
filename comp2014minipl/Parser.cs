@@ -380,7 +380,7 @@ namespace comp2014minipl
             {
                 sb.Append(t).Append(", ");
             }
-            errors.Add("" + location.line + ":" + location.position + " : Syntax error: received " + received + ", expected one of " + sb.ToString());
+            errors.Add("" + location.line + ":" + location.position + " Syntax error: received " + received + ", expected one of " + sb.ToString());
         }
         private Token getPredictToken(List<Token> tokens, int loc)
         {

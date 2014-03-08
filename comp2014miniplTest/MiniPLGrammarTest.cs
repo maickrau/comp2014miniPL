@@ -45,8 +45,8 @@ namespace comp2014miniplTest
             }
             catch (ParseError e)
             {
-                Assert.IsTrue(e.Message.Contains("0:4 : Syntax error"));
-                Assert.IsTrue(e.Message.Contains("3:5 : Syntax error"));
+                Assert.IsTrue(e.Message.Contains("0:4 Syntax error:"));
+                Assert.IsTrue(e.Message.Contains("3:5 Syntax error:"));
             }
         }
     }

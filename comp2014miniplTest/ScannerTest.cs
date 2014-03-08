@@ -105,8 +105,8 @@ namespace comp2014miniplTest
             }
             catch (ScannerException e)
             {
-                Assert.IsTrue(e.Message.Contains("0:3 : Untokenizable input"));
-                Assert.IsTrue(e.Message.Contains("0:5 : Untokenizable input"));
+                Assert.IsTrue(e.Message.Contains("0:3 Scanner error:"));
+                Assert.IsTrue(e.Message.Contains("0:5 Scanner error:"));
             }
         }
     }
