@@ -9,10 +9,26 @@ namespace comp2014minipl
     public class ParserException : Exception
     {
         public ParserException(String str) : base(str) { }
+        public ParserException() : base() { }
     }
-    public class ParserPredictException : ParserException
+    public class ParseError : ParserException
     {
-        public ParserPredictException(String str) : base(str) { }
+        public ParseError(String str) : base(str) { }
+        public ParseError(List<String> errors) : base(parseErrors(errors)) { }
+
+        private static String parseErrors(List<String> errors)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (String s in errors)
+            {
+                sb.AppendLine(s);
+            }
+            return sb.ToString();
+        }
+    }
+    public class ParserEofReachedException : ParserException
+    {
+        public ParserEofReachedException() : base() { }
     }
     public class NonTerminal : Token
     {
@@ -67,6 +83,8 @@ namespace comp2014minipl
         HashSet<Token> languageSymbols;
         Token startSymbol;
         Token eof;
+        List<String> errors;
+        bool eofErroredOnce;
         public void DebugPrint()
         {
             System.Console.WriteLine("Symbols:");
@@ -347,24 +365,25 @@ namespace comp2014minipl
             calculateTerminals();
             calculatePredict();
         }
-        public void parse(SyntaxNode currentNode, List<Token> tokens, ref int loc)
+        private void addError(Token location, Token received, List<Token> expected)
         {
-            if (startSymbol == null)
+            if (received == eof)
             {
-                throw new ParserException("Parser needs to have start symbol before parsing");
-            }
-            if (languageTerminals.Contains(currentNode.token))
-            {
-                if (loc >= tokens.Count)
+                if (eofErroredOnce)
                 {
-                    throw new ParserPredictException("Parser: Reached end of file, expected " + currentNode.token);
+                    return;
                 }
-                currentNode.token = tokens[loc];
-                currentNode.line = tokens[loc].line;
-                currentNode.position = tokens[loc].position;
-                loc++;
-                return;
+                eofErroredOnce = true;
             }
+            StringBuilder sb = new StringBuilder();
+            foreach (Token t in expected)
+            {
+                sb.Append(t).Append(", ");
+            }
+            errors.Add("" + location.line + ":" + location.position + " : Syntax error: received " + received + ", expected one of " + sb.ToString());
+        }
+        private Token getPredictToken(List<Token> tokens, int loc)
+        {
             Token predictToken;
             if (loc < tokens.Count)
             {
@@ -390,17 +409,57 @@ namespace comp2014minipl
             {
                 predictToken = new BoolLiteral(predictToken, "");
             }
+            return predictToken;
+        }
+        private void parse(SyntaxNode currentNode, List<Token> tokens, ref int loc)
+        {
+            if (languageTerminals.Contains(currentNode.token))
+            {
+                if (loc >= tokens.Count)
+                {
+                    addError(eof, eof, new List<Token>{currentNode.token});
+                    throw new ParserEofReachedException();
+                }
+                if (!currentNode.token.compatible(tokens[loc]))
+                {
+                    addError(tokens[loc], tokens[loc], new List<Token> { currentNode.token });
+                    while (!currentNode.token.compatible(tokens[loc]))
+                    {
+                        loc++;
+                        if (loc >= tokens.Count)
+                        {
+                            addError(eof, eof, new List<Token> { currentNode.token });
+                            throw new ParserEofReachedException();
+                        }
+                    }
+                }
+                currentNode.token = tokens[loc];
+                currentNode.line = tokens[loc].line;
+                currentNode.position = tokens[loc].position;
+                loc++;
+                return;
+            }
+            Token predictToken = getPredictToken(tokens, loc);
             if (!predict.ContainsKey(new Tuple<Token, Token>(currentNode.token, predictToken)))
             {
-                String expectedSymbols = "";
+                List<Token> expectedSymbols = new List<Token>();
                 foreach (Tuple<Token, Token> t in predict.Keys)
                 {
                     if (t.Item1 == currentNode.token)
                     {
-                        expectedSymbols += t.Item2 + " ";
+                        expectedSymbols.Add(t.Item2);
                     }
                 }
-                throw new ParserPredictException("Parser: Improper token " + predictToken + ", expected one of: " + expectedSymbols + ", line " + predictToken.line + ":" + predictToken.position);
+                addError(predictToken, predictToken, expectedSymbols);
+                while (!predict.ContainsKey(new Tuple<Token, Token>(currentNode.token, predictToken)))
+                {
+                    loc++;
+                    predictToken = getPredictToken(tokens, loc);
+                    if (predictToken == eof)
+                    {
+                        throw new ParserEofReachedException();
+                    }
+                }
             }
             List<Token> production = predict[new Tuple<Token, Token>(currentNode.token, predictToken)];
             foreach (Token t in production)
@@ -418,13 +477,31 @@ namespace comp2014minipl
         }
         public SyntaxTree parse(List<Token> tokens)
         {
+            if (tokens.Count < 1)
+            {
+                throw new ParseError("Parser: Empty input");
+            }
+            errors = new List<String>();
+            eofErroredOnce = false;
+            eof.line = tokens.Last().line;
+            eof.position = tokens.Last().position+1;
             if (startSymbol == null)
             {
                 throw new ParserException("Parser: Start symbol is not set");
             }
             SyntaxNode root = new SyntaxNode(startSymbol);
             int loc = 0;
-            parse(root, tokens, ref loc);
+            try
+            {
+                parse(root, tokens, ref loc);
+            }
+            catch (ParserEofReachedException)
+            {
+            }
+            if (errors.Count > 0)
+            {
+                throw new ParseError(errors);
+            }
             return new SyntaxTree(root);
         }
     }

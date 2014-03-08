@@ -23,6 +23,18 @@ namespace comp2014minipl
     }
     public abstract class Token
     {
+        public bool compatible(Token second)
+        {
+            return this.GetType() == second.GetType();
+        }
+        public override int GetHashCode()
+        {
+            return line.GetHashCode() ^ position.GetHashCode();
+        }
+        public override bool Equals(object obj)
+        {
+            return false;
+        }
         public int line;
         public int position;
     }

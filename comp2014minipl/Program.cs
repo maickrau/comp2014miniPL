@@ -32,7 +32,7 @@ namespace comp2014minipl
                 System.Console.WriteLine("Error parsing program: " + e.Message);
                 return;
             }
-            catch (ParserPredictException e)
+            catch (ParseError e)
             {
                 System.Console.WriteLine("Error parsing program: " + e.Message);
                 return;
