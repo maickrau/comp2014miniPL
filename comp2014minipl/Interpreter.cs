@@ -137,7 +137,7 @@ namespace comp2014minipl
             Expression val2 = eval(node.children[1]);
             if (val1.type != val2.type)
             {
-                throw new InterpreterException(node, "Operator has different types");
+                throw new ShouldntHappenException(node, "Operator has different types");
             }
             if (val1 is IntValue)
             {
