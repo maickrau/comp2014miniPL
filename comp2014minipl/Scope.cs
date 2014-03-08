@@ -34,56 +34,24 @@ namespace comp2014minipl
         }
         public void set(Variable var, Expression val)
         {
-            if (!values.ContainsKey(var))
-            {
-                throw new MiniPLException("Scope: Variable " + var.name + " assigned before definition");
-            }
-            if (values[var].type != val.type)
-            {
-                throw new MiniPLException("Scope: Assignment to " + var.name + " with invalid type");
-            }
-            if (constants.Contains(var))
-            {
-                throw new MiniPLException("Scope: Assignment to constant " + var.name);
-            }
             values[var] = val;
         }
         public void define(Variable var, TypeName type, Expression val = null)
         {
-            if (values.ContainsKey(var))
-            {
-                throw new MiniPLException("Scope: Variable " + var.name + " defined twice");
-            }
-            if (val != null && val.type != type.type)
-            {
-                throw new MiniPLException("Scope: Variable " + var.name + " defined with initial value of different type");
-            }
             names[var.name] = var;
             var.type = type.type;
             values[var] = val;
         }
         public Variable getVar(String var)
         {
-            if (!names.ContainsKey(var))
-            {
-                throw new MiniPLException("Scope: Can't find variable " + var);
-            }
             return names[var];
         }
         public Expression getValue(String var)
         {
-            if (!names.ContainsKey(var))
-            {
-                throw new MiniPLException("Scope: Can't find variable " + var);
-            }
             return get(names[var]);
         }
         public Expression get(Variable var)
         {
-            if (!values.ContainsKey(var))
-            {
-                throw new MiniPLException("Scope: Variable " + var.name + " read before definition");
-            }
             return values[var];
         }
     }

@@ -7,6 +7,16 @@ using System.IO;
 
 namespace comp2014minipl
 {
+    public class ShouldntHappenException : Exception
+    {
+        //bug in this program
+        public ShouldntHappenException(ASTNode position, String str) : base("" + position.line + ":" + position.position + " This should never happen: " + str) { }
+    }
+    public class InterpreterException : Exception
+    {
+        //bug between keyboard and chair
+        public InterpreterException(ASTNode position, String str) : base("" + position.line + ":" + position.position + " Runtime error: " + str) { }
+    }
     public class Interpreter
     {
         AST ast;
@@ -102,7 +112,7 @@ namespace comp2014minipl
             {
                 return binaryOperatorCall(node);
             }
-            throw new Exception("Operator call with " + node.children.Count + " operands");
+            throw new ShouldntHappenException(node, "Operator call with " + node.children.Count + " operands");
         }
         private Expression unaryOperatorCall(OperatorCall node)
         {
@@ -119,7 +129,7 @@ namespace comp2014minipl
             {
                 return boolOperatorCall(node, new BoolValue(node, false), (BoolValue)val);
             }
-            throw new MiniPLException("Unknown type for calling operator, line " + node.line + ":" + node.position);
+            throw new ShouldntHappenException(node, "Unknown type for calling operator");
         }
         private Expression binaryOperatorCall(OperatorCall node)
         {
@@ -127,7 +137,7 @@ namespace comp2014minipl
             Expression val2 = eval(node.children[1]);
             if (val1.type != val2.type)
             {
-                throw new MiniPLException("Operator has different types, line " + node.line + ":" + node.position);
+                throw new InterpreterException(node, "Operator has different types");
             }
             if (val1 is IntValue)
             {
@@ -141,7 +151,7 @@ namespace comp2014minipl
             {
                 return boolOperatorCall(node, (BoolValue)val1, (BoolValue)val2);
             }
-            throw new MiniPLException("Unknown type for calling operator, line " + node.line + ":" + node.position);
+            throw new ShouldntHappenException(node, "Unknown type for calling operator");
         }
         private Expression intOperatorCall(OperatorCall op, IntValue val1, IntValue val2)
         {
@@ -159,6 +169,10 @@ namespace comp2014minipl
             }
             if (op.op.Equals(ast.grammar.o["/"]))
             {
+                if (val2.value == 0)
+                {
+                    throw new InterpreterException(op, "Division by zero");
+                }
                 return new IntValue(op, val1.value / val2.value);
             }
             if (op.op.Equals(ast.grammar.o["&"]))
@@ -173,7 +187,7 @@ namespace comp2014minipl
             {
                 return new BoolValue(op, val1.value == val2.value);
             }
-            throw new MiniPLException("Unsupported operator for int: " + op.op + ", line " + op.line + ":" + op.position);
+            throw new ShouldntHappenException(op, "Unsupported operator for int: " + op.op);
         }
         private Expression boolOperatorCall(OperatorCall op, BoolValue val1, BoolValue val2)
         {
@@ -205,7 +219,7 @@ namespace comp2014minipl
             {
                 return new BoolValue(op, !val2.value);
             }
-            throw new MiniPLException("Unsupported operator for bool: " + op.op + ", line " + op.line + ":" + op.position);
+            throw new ShouldntHappenException(op, "Unsupported operator for bool: " + op.op);
         }
         private Expression stringOperatorCall(OperatorCall op, StringValue val1, StringValue val2)
         {
@@ -221,7 +235,7 @@ namespace comp2014minipl
             {
                 return new BoolValue(op, val1.value == val2.value);
             }
-            throw new MiniPLException("Unsupported operator for string: " + op.op + ", line " + op.line + ":" + op.position);
+            throw new ShouldntHappenException(op, "Unsupported operator for string: " + op.op);
         }
         private void assert(Assertion node)
         {
@@ -251,7 +265,7 @@ namespace comp2014minipl
             }
             else
             {
-                throw new MiniPLException("Unkown type " + value + " for printing, line " + node.line + ":" + node.position);
+                throw new ShouldntHappenException(node, "Unkown type " + value + " for printing");
             }
         }
         private void read(Read node)
@@ -280,11 +294,11 @@ namespace comp2014minipl
                 }
                 catch (FormatException e)
                 {
-                    throw new MiniPLException(word + " is not an integer, line " + node.line + ":" + node.position);
+                    throw new InterpreterException(node, word + " is not an integer");
                 }
                 catch (OverflowException e)
                 {
-                    throw new MiniPLException(word + " is too big for an integer, line " + node.line + ":" + node.position);
+                    throw new InterpreterException(node, word + " is too big for an integer");
                 }
                 scope.set(var, new IntValue(node, val));
             }
@@ -299,24 +313,24 @@ namespace comp2014minipl
             }
             else
             {
-                throw new MiniPLException("Unknown type for variable " + var.name + ": " + var.type + ", line " + node.line + ":" + node.position);
+                throw new ShouldntHappenException(node, "Unknown type for variable " + var.name);
             }
         }
         private void evalFor(For node)
         {
             if (!scope.hasVariable((Variable)node.children[0]))
             {
-                throw new MiniPLException("Loop variable must be declared before loop, line " + node.line + ":" + node.position);
+                throw new ShouldntHappenException(node, "Loop variable must be declared before loop");
             }
             Expression start = eval(node.children[1]);
             Expression end = eval(node.children[2]);
             if (!(start is IntValue))
             {
-                throw new MiniPLException("Loop start index must be an int, line " + node.line + ":" + node.position);
+                throw new ShouldntHappenException(node, "Loop start index must be an int");
             }
             if (!(end is IntValue))
             {
-                throw new MiniPLException("Loop end index must be an int, line " + node.line + ":" + node.position);
+                throw new ShouldntHappenException(node, "Loop end index must be an int");
             }
             int endI = ((IntValue)end).value;
             int startI = ((IntValue)start).value;
@@ -349,7 +363,7 @@ namespace comp2014minipl
             {
                 return new BoolValue(from, false);
             }
-            throw new MiniPLException("Unknown type for default value, line " + from.line + ":" + from.position);
+            throw new ShouldntHappenException(from, "Unknown type for default value");
         }
         private void define(Define node)
         {

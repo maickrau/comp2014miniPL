@@ -7,10 +7,6 @@ using System.IO;
 
 namespace comp2014minipl
 {
-    public class MiniPLException : Exception
-    {
-        public MiniPLException(String str) : base(str) { }
-    }
     class Program
     {
         static void interpret(String program)
@@ -27,11 +23,6 @@ namespace comp2014minipl
                 System.Console.WriteLine("Error parsing program\n" + e.Message);
                 return;
             }
-            catch (MiniPLException e)
-            {
-                System.Console.WriteLine("Error parsing program\n" + e.Message);
-                return;
-            }
             catch (ParseError e)
             {
                 System.Console.WriteLine("Error parsing program\n" + e.Message);
@@ -42,14 +33,14 @@ namespace comp2014minipl
                 System.Console.WriteLine("Error parsing program\n" + e.Message);
                 return;
             }
-            //every other exception is a bug in the program
+            //every other exception is a bug in this program
             System.Console.WriteLine("Interpreting");
             Interpreter inter = new Interpreter();
             try
             {
                 inter.run(ast);
             }
-            catch (MiniPLException e) //user's fault
+            catch (InterpreterException e) //user's fault
             {
                 System.Console.WriteLine("Error interpreting program: " + e.Message);
                 return;
