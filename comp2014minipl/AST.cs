@@ -9,6 +9,16 @@ namespace comp2014minipl
     public class SemanticError : Exception
     {
         public SemanticError(String str, SyntaxNode from) : base(str + ", line " + from.line + ":" + from.position) { }
+        public SemanticError(List<String> errors) : base(parseErrors(errors)) { }
+        private static String parseErrors(List<String> errors)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (String s in errors)
+            {
+                sb.AppendLine(s);
+            }
+            return sb.ToString();
+        }
     }
     public class ASTNode
     {
@@ -174,12 +184,22 @@ namespace comp2014minipl
         public MiniPLGrammar grammar;
         public Dictionary<String, Variable> vars;
         private HashSet<String> currentConstants;
+        private List<String> errors;
         public AST(MiniPLGrammar grammar, SyntaxTree tree)
         {
+            errors = new List<String>();
             currentConstants = new HashSet<String>();
             vars = new Dictionary<String, Variable>();
             this.grammar = grammar;
             root = parse(tree.root);
+            if (errors.Count > 0)
+            {
+                throw new SemanticError(errors);
+            }
+        }
+        private void addError(SyntaxNode node, String message)
+        {
+            errors.Add("" + node.line + ":" + node.position + " : Semantic error :" + message);
         }
         private ASTNode parse(SyntaxNode node)
         {
@@ -225,7 +245,7 @@ namespace comp2014minipl
                     Expression initialValue = parseExpression(node.children[4].children[1]);
                     if (initialValue.type != newVariable.type)
                     {
-                        throw new SemanticError("Variable " + newVariable.name + " defined with initial value of different type", node);
+                        addError(node, "Variable " + newVariable.name + " defined with initial value of different type");
                     }
                     ret.children.Add(initialValue);
                 }
@@ -241,12 +261,12 @@ namespace comp2014minipl
                 Variable var = parseVariable(node.children[0], false);
                 if (currentConstants.Contains(var.name))
                 {
-                    throw new SemanticError("Assignment to loop variable " + var.name, node);
+                    addError(node, "Assignment to loop variable " + var.name);
                 }
                 Expression value = parseExpression(node.children[2]);
                 if (var.type != value.type)
                 {
-                    throw new SemanticError("Variable " + var.name + " assigned a value of different type", node);
+                    addError(node, "Variable " + var.name + " assigned a value of different type");
                 }
                 ret.children.Add(var);
                 ret.children.Add(value);
@@ -260,15 +280,15 @@ namespace comp2014minipl
                 Expression to = parseExpression(node.children[5]);
                 if (var.type != typeof(int))
                 {
-                    throw new SemanticError("Only ints may be iterated on", node);
+                    addError(node, "Only ints may be iterated on");
                 }
                 if (from.type != typeof(int))
                 {
-                    throw new SemanticError("Iteration start needs to be an int", node);
+                    addError(node, "Iteration start needs to be an int");
                 }
                 if (to.type != typeof(int))
                 {
-                    throw new SemanticError("Iteration end needs to be an int", node);
+                    addError(node, "Iteration end needs to be an int");
                 }
                 ret.children.Add(var);
                 ret.children.Add(from);
@@ -327,13 +347,13 @@ namespace comp2014minipl
             {
                 if (shouldCreate)
                 {
-                    throw new SemanticError("Variable " + varName + " defined twice", node);
+                    addError(node, "Variable " + varName + " defined twice");
                 }
                 return vars[varName];
             }
             if (!shouldCreate)
             {
-                throw new SemanticError("Variable " + varName + " referenced before definition", node);
+                addError(node, "Variable " + varName + " referenced before definition");
             }
             Variable newVar = new Variable(node, varName);
             vars[varName] = newVar;
@@ -397,7 +417,7 @@ namespace comp2014minipl
                     ret.op = parseOperator(node.children[0]);
                     if (!unaryOperatorMakesSense(ret.op, operand.type))
                     {
-                        throw new SemanticError("Unary operator " + ret.op.ToString() + " can't be applied to " + operand.type, node);
+                        addError(node, "Unary operator " + ret.op.ToString() + " can't be applied to " + operand.type);
                     }
                     ret.children.Add(operand);
                     ret.type = operand.type;
@@ -413,11 +433,13 @@ namespace comp2014minipl
             {
                 OperatorCall ret = new OperatorCall(node);
                 ret.op = parseOperator(node.children[1].children[0]);
+                ret.line = ret.op.line;
+                ret.position = ret.op.position;
                 Expression lhs = parseExpression(node.children[0]);
                 Expression rhs = parseExpression(node.children[1].children[1]);
                 if (!binaryOperatorMakesSense(ret.op, lhs.type, rhs.type))
                 {
-                    throw new SemanticError("Binary operator " + ret.op.ToString() + " can't be applied to " + lhs.type + " and " + rhs.type, node);
+                    addError(node.children[1], "Binary operator " + ret.op.ToString() + " can't be applied to " + lhs.type + " and " + rhs.type);
                 }
                 ret.children.Add(lhs);
                 ret.children.Add(rhs);

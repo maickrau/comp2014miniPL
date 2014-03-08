@@ -23,5 +23,21 @@ namespace comp2014miniplTest
             Assert.IsInstanceOfType(ast.root.children[1].children[0].children[0], typeof(Variable));
             Assert.AreEqual(typeof(int), ((TypeName)ast.root.children[0].children[1]).type);
         }
+        [TestMethod]
+        public void doesntStopAtFirstError()
+        {
+            String program = "print \"a\"-(\"b\"*3);";
+            MiniPLGrammar g = new MiniPLGrammar();
+            try
+            {
+                AST ast = new AST(g, g.parse(program));
+                Assert.Fail("Didn't throw an exception");
+            }
+            catch (SemanticError e)
+            {
+                Assert.IsTrue(e.Message.Contains("0:9 : Semantic error :"));
+                Assert.IsTrue(e.Message.Contains("0:14 : Semantic error :"));
+            }
+        }
     }
 }
